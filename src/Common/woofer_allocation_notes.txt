@@ -1,0 +1,45 @@
+#### No datalogging, but still q[blah]
+
+Running closed loop control for 4000 steps.
+  2.892074 seconds (648.07 k allocations: 13.889 MiB)
+closed_loop_time = 2.892073944
+Succeeded in closing ODrive hardware.
+2.892073944
+
+
+#### Commenting out the q[blah] in the HardwareInterface.jl, and datalogging
+
+Running closed loop control for 4000 steps.
+  3.138854 seconds (263.74 k allocations: 8.012 MiB)
+closed_loop_time = 3.138853964
+Succeeded in closing ODrive hardware.
+3.138853964
+
+### same thing as above
+Running closed loop control for 4000 steps.
+  3.044449 seconds (264.01 k allocations: 8.026 MiB)
+closed_loop_time = 3.044448665
+Succeeded in closing ODrive hardware.
+3.044448665
+
+#### No mocap (use_mocap=false), no q[blah], no datalogging
+Running closed loop control for 4000 steps.
+  2.506066 seconds (104.02 k allocations: 1.953 MiB)
+closed_loop_time = 2.506065615
+Succeeded in closing ODrive hardware.
+2.506065615
+
+
+#### Using mocap, but only calling getData, q[blah] commented out, no datalogging
+Running closed loop control for 4000 steps.
+  3.222682 seconds (248.02 k allocations: 7.630 MiB)
+closed_loop_time = 3.222681628
+Succeeded in closing ODrive hardware.
+3.222681628
+
+#### Using mocap, but calling everything except getData, q[blah] commented out, no datalogging
+Running closed loop control for 4000 steps.
+  2.543033 seconds (108.02 k allocations: 2.503 MiB)
+closed_loop_time = 2.5430328
+Succeeded in closing ODrive hardware.
+2.5430328

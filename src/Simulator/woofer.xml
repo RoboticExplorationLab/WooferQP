@@ -1,0 +1,214 @@
+<!-- Stanford Woofer Model
+
+    The state space is populated with joints in the order that they are
+    defined in this file.
+-->
+<mujoco model="woofer">
+    <compiler angle="radian" coordinate="local" inertiafromgeom="auto"/>
+
+    <default>
+        <joint armature="woofer_armature" solimplimit="woofer_joint_solimp" solreflimit="woofer_joint_solref" stiffness="0"/>
+        <geom conaffinity="0" condim="3" contype="1" friction="woofer_friction .1 .1" rgba="0.8 0.6 .4 1" solimp="woofer_geom_solimp" solref="woofer_geom_solref"/>
+        <motor ctrllimited="true" forcelimited="true"/>
+    </default>
+
+    <option>
+        <flag sensornoise="enable"/>
+    </option>
+
+    <sensor>
+        <accelerometer name="accel" noise="woofer_accel_noise" site="imu_site"/>
+        <gyro name="gyro" noise="woofer_gyro_noise" site="imu_site"/>
+
+        <jointpos joint="fr_x" noise="woofer_encoder_noise"/>
+        <jointpos joint="fr_thigh_1" noise="woofer_encoder_noise"/>
+        <jointpos joint="fr_thigh_2" noise="woofer_encoder_noise"/>
+
+        <jointpos joint="fl_x" noise="woofer_encoder_noise"/>
+        <jointpos joint="fl_thigh_1" noise="woofer_encoder_noise"/>
+        <jointpos joint="fl_thigh_2" noise="woofer_encoder_noise"/>
+
+        <jointpos joint="br_x" noise="woofer_encoder_noise"/>
+        <jointpos joint="br_thigh_1" noise="woofer_encoder_noise"/>
+        <jointpos joint="br_thigh_2" noise="woofer_encoder_noise"/>
+
+        <jointpos joint="bl_x" noise="woofer_encoder_noise"/>
+        <jointpos joint="bl_thigh_1" noise="woofer_encoder_noise"/>
+        <jointpos joint="bl_thigh_2" noise="woofer_encoder_noise"/>
+
+        <jointvel joint="fr_x" noise="woofer_encoder_vel_noise"/>
+        <jointvel joint="fr_thigh_1" noise="woofer_encoder_vel_noise"/>
+        <jointvel joint="fr_thigh_2" noise="woofer_encoder_vel_noise"/>
+
+        <jointvel joint="fl_x" noise="woofer_encoder_vel_noise"/>
+        <jointvel joint="fl_thigh_1" noise="woofer_encoder_vel_noise"/>
+        <jointvel joint="fl_thigh_2" noise="woofer_encoder_vel_noise"/>
+
+        <jointvel joint="br_x" noise="woofer_encoder_vel_noise"/>
+        <jointvel joint="br_thigh_1" noise="woofer_encoder_vel_noise"/>
+        <jointvel joint="br_thigh_2" noise="woofer_encoder_vel_noise"/>
+
+        <jointvel joint="bl_x" noise="woofer_encoder_vel_noise"/>
+        <jointvel joint="bl_thigh_1" noise="woofer_encoder_vel_noise"/>
+        <jointvel joint="bl_thigh_2" noise="woofer_encoder_vel_noise"/>
+    </sensor>
+
+    <size nstack="300000" nuser_geom="1"/>
+
+    <option timestep="woofer_timestep"/>
+    <asset>
+        <texture builtin="gradient" height="100" rgb1="1 1 1" rgb2="0 0 0" type="skybox" width="100"/>
+        <texture builtin="flat" height="1278" mark="cross" markrgb="1 1 1" name="texgeom" random="0.01" rgb1="0.8 0.6 0.4" rgb2="0.8 0.6 0.4" type="cube" width="127"/>
+        <texture builtin="checker" height="100" name="texplane" rgb1="0 0 0" rgb2="0.8 0.8 0.8" type="2d" width="100"/>
+        <material name="MatPlane" reflectance="0.5" shininess="1" specular="1" texrepeat="60 60" texture="texplane"/>
+        <material name="geom" texture="texgeom" texuniform="true"/>
+    </asset>
+
+
+    <worldbody>
+        <light cutoff="100" diffuse="1 1 1" dir="-0 0 -1.3" directional="true" exponent="1" pos="0 0 1.3" specular=".1 .1 .1"/>
+        <geom conaffinity="1" condim="3" material="MatPlane" name="floor" pos="0 0 0" rgba="0.8 0.9 0.8 1" size="40 40 40" type="plane"/>
+
+
+        <body name="torso" pos="woofer_start_position">
+            <camera name="track" mode="trackcom" pos="0 -2 0.3" xyaxes="1 0 0 0 0 1"/>
+            <joint armature="0" axis="1 0 0" damping="0" limited="false" name="rootx" pos="0 0 0" stiffness="0" type="free"/>
+
+            <inertial pos="0 0 0" mass="woofer_frame_mass" diaginertia="woofer_frame_inertia"/>
+            <geom pos="0 0 0" name="torso" size="woofer_half_size" type="box"/>
+
+            <site name="imu_site" pos="0 0 0" size=".01 .01 .01" type="box"/>
+
+            <body name="fr_module" pos="woofer_leg_fb -woofer_leg_lr 0">
+                <geom pos="-0.029 0 0" name="fr_block" type="box" size="0.094 0.031 0.03" rgba="0.6 0.8 .4 1"/>
+                <joint axis="1 0 0" name="fr_x" pos="0 0 0" limited="true" range="woofer_joint_range" type="hinge" damping="woofer_joint_damping"/>
+                <inertial pos="0 0 0" mass="woofer_module_mass" fullinertia="woofer_module_inertia"/>
+                <body name="fr_thigh_1" pos="woofer_thigh_length -woofer_abduction_offset 0">
+                    <joint axis="0 1 0" name="fr_thigh_1" pos="-woofer_thigh_length 0 0" limited="true" range="woofer_joint_range" type="hinge" damping="woofer_joint_damping"/>
+                    <!-- <inertial pos="0 0 0" mass="woofer_thigh_mass"/> -->
+                    <geom axisangle="0 1 0 1.57" name="fr_thigh_1" size="woofer_leg_radius woofer_thigh_length" type="capsule" rgba = "1 0 0 0.5" mass="woofer_thigh_mass"/>
+                    <body name="fr_shin_1" pos="0.00 0 -woofer_shin_pos">
+                        <joint axis="0 1 0" name="fr_shin_1" pos="woofer_thigh_length 0 woofer_shin_pos" type="hinge"/>
+                        <!-- <inertial pos="0 0 0" mass="woofer_shin_mass"/> -->
+                        <geom axisangle="0 1 0 woofer_shin_angle" name="fr_shin_1" rgba="0 1 1 1" size="woofer_leg_radius woofer_shin_length" type="capsule" mass="woofer_shin_mass"/>
+                    </body>
+                </body>
+                <body name="fr_thigh_2" pos="-woofer_thigh_length -woofer_abduction_offset 0">
+                    <joint axis="0 1 0" name="fr_thigh_2" pos="woofer_thigh_length 0 0" limited="true" range="woofer_joint_range" type="hinge" damping="woofer_joint_damping"/>
+                    <!-- <inertial pos="0 0 0" mass="woofer_thigh_mass"/> -->
+                    <geom axisangle="0 1 0 1.57" name="fr_thigh_2" size="woofer_leg_radius woofer_thigh_length" type="capsule" rgba = "1 0 0 0.5" mass="woofer_thigh_mass"/>
+                    <body name="fr_shin_2" pos="0.00 0 -woofer_shin_pos">
+                        <joint axis="0 1 0" name="fr_shin_2" pos="-woofer_thigh_length 0 woofer_shin_pos" type="hinge"/>
+                        <!-- <inertial pos="0 0 0" mass="woofer_shin_mass"/> -->
+                        <geom axisangle="0 1 0 -woofer_shin_angle" name="fr_shin_2" rgba="0 1 1 1" size="woofer_leg_radius woofer_shin_length" type="capsule" mass="woofer_shin_mass"/>
+                    </body>
+                </body>
+            </body>
+
+            <body name="fl_module" pos="woofer_leg_fb woofer_leg_lr 0">
+                <geom pos = "-0.029 0 0" name="fl_block" type="box" size="0.094 0.031 0.03" rgba="0.6 0.8 .4 1"/>
+                <joint axis="1 0 0" name="fl_x" pos="0 0 0" limited="true" range="woofer_joint_range" type="hinge" damping="woofer_joint_damping"/>
+                <inertial pos="0 0 0" mass="woofer_module_mass" fullinertia="woofer_module_inertia"/>
+                <body name="fl_thigh_1" pos="woofer_thigh_length woofer_abduction_offset 0">
+                    <joint axis="0 1 0" name="fl_thigh_1" pos="-woofer_thigh_length 0 0" limited="true" range="woofer_joint_range" type="hinge" damping="woofer_joint_damping"/>
+                    <!-- <inertial pos="0 0 0" mass="woofer_thigh_mass"/> -->
+                    <geom axisangle="0 1 0 1.57" name="fl_thigh_1" size="woofer_leg_radius woofer_thigh_length" type="capsule" rgba = "1 0 0 0.5" mass="woofer_thigh_mass"/>
+                    <body name="fl_shin_1" pos="0.00 0 -woofer_shin_pos">
+                        <joint axis="0 1 0" name="fl_shin_1" pos="woofer_thigh_length 0 woofer_shin_pos" type="hinge"/>
+                        <!-- <inertial pos="0 0 0" mass="woofer_shin_mass"/> -->
+                        <geom axisangle="0 1 0 woofer_shin_angle" name="fl_shin_1" rgba="0 1 1 1" size="woofer_leg_radius woofer_shin_length" type="capsule" mass="woofer_shin_mass"/>
+                    </body>
+                </body>
+                <body name="fl_thigh_2" pos="-woofer_thigh_length woofer_abduction_offset 0">
+                    <joint axis="0 1 0" name="fl_thigh_2" pos="woofer_thigh_length 0 0" limited="true" range="woofer_joint_range" type="hinge" damping="woofer_joint_damping"/>
+                    <!-- <inertial pos="0 0 0" mass="woofer_thigh_mass"/> -->
+                    <geom axisangle="0 1 0 1.57" name="fl_thigh_2" size="woofer_leg_radius woofer_thigh_length" type="capsule" rgba = "1 0 0 0.5" mass="woofer_thigh_mass"/>
+                    <body name="fl_shin_2" pos="0.00 0 -woofer_shin_pos">
+                        <joint axis="0 1 0" name="fl_shin_2" pos="-woofer_thigh_length 0 woofer_shin_pos" type="hinge"/>
+                        <!-- <inertial pos="0 0 0" mass="woofer_shin_mass"/> -->
+                        <geom axisangle="0 1 0 -woofer_shin_angle" name="fl_shin_2" rgba="0 1 1 1" size="woofer_leg_radius woofer_shin_length" type="capsule" mass="woofer_shin_mass"/>
+                    </body>
+                </body>
+            </body>
+
+            <body name="br_module" pos="-woofer_leg_fb -woofer_leg_lr 0">
+                <geom pos="0.029 0 0" name="br_block" type="box" size="0.094 0.031 0.03" rgba="0.6 0.8 .4 1"/>
+                <joint axis="1 0 0" name="br_x" pos="0 0 0" limited="true" range="woofer_joint_range" type="hinge" damping="woofer_joint_damping"/>
+                <inertial pos="0 0 0" mass="woofer_module_mass" fullinertia="woofer_module_inertia"/>
+                <body name="br_thigh_1" pos="woofer_thigh_length -woofer_abduction_offset 0">
+                    <joint axis="0 1 0" name="br_thigh_1" pos="-woofer_thigh_length 0 0" limited="true" range="woofer_joint_range" type="hinge" damping="woofer_joint_damping"/>
+                    <!-- <inertial pos="0 0 0" mass="woofer_thigh_mass"/> -->
+                    <geom axisangle="0 1 0 1.57" name="br_thigh_1" size="woofer_leg_radius woofer_thigh_length" type="capsule" rgba = "1 0 0 0.5" mass="woofer_thigh_mass"/>
+                    <body name="br_shin_1" pos="0.00 0 -woofer_shin_pos">
+                        <joint axis="0 1 0" name="br_shin_1" pos="woofer_thigh_length 0 woofer_shin_pos" type="hinge"/>
+                        <!-- <inertial pos="0 0 0" mass="woofer_shin_mass"/> -->
+                        <geom axisangle="0 1 0 woofer_shin_angle" name="br_shin_1" rgba="0 1 1 1" size="woofer_leg_radius woofer_shin_length" type="capsule" mass="woofer_shin_mass"/>
+                    </body>
+                </body>
+
+                <body name="br_thigh_2" pos="-woofer_thigh_length -woofer_abduction_offset 0">
+                    <joint axis="0 1 0" name="br_thigh_2" pos="woofer_thigh_length 0 0" limited="true" range="woofer_joint_range" type="hinge" damping="woofer_joint_damping"/>
+                    <!-- <inertial pos="0 0 0" mass="woofer_thigh_mass"/> -->
+                    <geom axisangle="0 1 0 1.57" name="br_thigh_2" size="woofer_leg_radius woofer_thigh_length" type="capsule" rgba = "1 0 0 0.5" mass="woofer_thigh_mass"/>
+                    <body name="br_shin_2" pos="0.00 0 -woofer_shin_pos">
+                        <joint axis="0 1 0" name="br_shin_2" pos="-woofer_thigh_length 0 woofer_shin_pos" type="hinge"/>
+                        <!-- <inertial pos="0 0 0" mass="woofer_shin_mass"/> -->
+                        <geom axisangle="0 1 0 -woofer_shin_angle" name="br_shin_2" rgba="0 1 1 1" size="woofer_leg_radius woofer_shin_length" type="capsule" mass="woofer_shin_mass"/>
+                    </body>
+                </body>
+            </body>
+
+            <body name="bl_module" pos="-woofer_leg_fb woofer_leg_lr 0">
+                <geom pos = "0.029 0 0" name="bl_block" type="box" size="0.094 0.031 0.03" rgba="0.6 0.8 .4 1"/>
+                <joint axis="1 0 0" name="bl_x" pos="0 0 0" limited="true" range="woofer_joint_range" type="hinge" damping="woofer_joint_damping"/>
+                <inertial pos="0 0 0" mass="woofer_module_mass" fullinertia="woofer_module_inertia"/>
+                <body name="bl_thigh_1" pos="woofer_thigh_length woofer_abduction_offset 0">
+                    <joint axis="0 1 0" name="bl_thigh_1" pos="-woofer_thigh_length 0 0" limited="true" range="woofer_joint_range" type="hinge" damping="woofer_joint_damping"/>
+                    <!-- <inertial pos="0 0 0" mass="woofer_thigh_mass"/> -->
+                    <geom axisangle="0 1 0 1.57" name="bl_thigh_1" size="woofer_leg_radius woofer_thigh_length" type="capsule" rgba = "1 0 0 0.5" mass="woofer_thigh_mass"/>
+                    <body name="bl_shin_1" pos="0.00 0 -woofer_shin_pos">
+                        <joint axis="0 1 0" name="bl_shin_1" pos="woofer_thigh_length 0 woofer_shin_pos" type="hinge"/>
+                        <!-- <inertial pos="0 0 0" mass="woofer_shin_mass"/> -->
+                        <geom axisangle="0 1 0 woofer_shin_angle" name="bl_shin_1" rgba="0 1 1 1" size="woofer_leg_radius woofer_shin_length" type="capsule" mass="woofer_shin_mass"/>
+                    </body>
+                </body>
+
+                <body name="bl_thigh_2" pos="-woofer_thigh_length woofer_abduction_offset 0">
+                    <joint axis="0 1 0" name="bl_thigh_2" pos="woofer_thigh_length 0 0" limited="true" range="woofer_joint_range" type="hinge" damping="woofer_joint_damping"/>
+                    <!-- <inertial pos="0 0 0" mass="woofer_thigh_mass"/> -->
+                    <geom axisangle="0 1 0 1.57" name="bl_thigh_2" size="woofer_leg_radius woofer_thigh_length" type="capsule" rgba = "1 0 0 0.5"  mass="woofer_thigh_mass"/>
+                    <body name="bl_shin_2" pos="0.00 0 -woofer_shin_pos">
+                        <joint axis="0 1 0" name="bl_shin_2" pos="-woofer_thigh_length 0 woofer_shin_pos" type="hinge"/>
+                        <!-- <inertial pos="0 0 0" mass="woofer_shin_mass"/> -->
+                        <geom axisangle="0 1 0 -woofer_shin_angle" name="bl_shin_2" rgba="0 1 1 1" size="woofer_leg_radius woofer_shin_length" type="capsule" mass="woofer_shin_mass"/>
+                    </body>
+                </body>
+            </body>
+        </body>
+    </worldbody>
+
+    <equality>
+        <connect name="fr_connect" body1="fr_shin_1" body2="fr_shin_2" anchor="-0.09 0 -0.133"/>
+        <connect name="fl_connect" body1="fl_shin_1" body2="fl_shin_2" anchor="-0.09 0 -0.133"/>
+        <connect name="br_connect" body1="br_shin_1" body2="br_shin_2" anchor="-0.09 0 -0.133"/>
+        <connect name="bl_connect" body1="bl_shin_1" body2="bl_shin_2" anchor="-0.09 0 -0.133"/>
+    </equality>
+
+    <actuator>
+        <motor gear="1" joint="fr_x" name="fr_x" forcerange="woofer_joint_force_range" ctrlrange="woofer_joint_force_range"/>
+        <motor gear="1" joint="fr_thigh_1" name="fr_thigh_1" forcerange="woofer_joint_force_range" ctrlrange="woofer_joint_force_range"/>
+        <motor gear="1" joint="fr_thigh_2" name="fr_thigh_2" forcerange="woofer_joint_force_range" ctrlrange="woofer_joint_force_range"/>
+
+        <motor gear="1" joint="fl_x" name="fl_x" forcerange="woofer_joint_force_range" ctrlrange="woofer_joint_force_range"/>
+        <motor gear="1" joint="fl_thigh_1" name="fl_thigh_1" forcerange="woofer_joint_force_range" ctrlrange="woofer_joint_force_range"/>
+        <motor gear="1" joint="fl_thigh_2" name="fl_thigh_2" forcerange="woofer_joint_force_range" ctrlrange="woofer_joint_force_range"/>
+
+        <motor gear="1" joint="br_x" name="br_x" forcerange="woofer_joint_force_range" ctrlrange="woofer_joint_force_range"/>
+        <motor gear="1" joint="br_thigh_1" name="br_thigh_1" forcerange="woofer_joint_force_range" ctrlrange="woofer_joint_force_range"/>
+        <motor gear="1" joint="br_thigh_2" name="br_thigh_2" forcerange="woofer_joint_force_range" ctrlrange="woofer_joint_force_range"/>
+
+        <motor gear="1" joint="bl_x" name="bl_x" forcerange="woofer_joint_force_range" ctrlrange="woofer_joint_force_range"/>
+        <motor gear="1" joint="bl_thigh_1" name="bl_thigh_1" forcerange="woofer_joint_force_range" ctrlrange="woofer_joint_force_range"/>
+        <motor gear="1" joint="bl_thigh_2" name="bl_thigh_2" forcerange="woofer_joint_force_range" ctrlrange="woofer_joint_force_range"/>
+    </actuator>
+</mujoco>
