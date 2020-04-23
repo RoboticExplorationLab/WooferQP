@@ -5,9 +5,12 @@
 	num_phases::Int64 = 4
 
 	# 4xnum_phase array of contacts for each gait phase
-	contact_phases::Array{Int64} = [1 1 1 0; 1 0 1 1; 1 0 1 1; 1 1 1 0]
+	contact_phases::Array{Int64} = [1 1 1 0;
+									1 0 1 1;
+									1 0 1 1;
+									1 1 1 0]
 
-	phase_times::Vector{Float64} = [0.1, 0.25, 0.1, 0.25]
+	phase_times::Vector{Float64} = [0.5, 0.2, 0.5, 0.2]
 
 	phase_length::Float64 = sum(phase_times)
 	alpha::Float64 = 0.5

@@ -1,16 +1,17 @@
-__precompile__()
+# __precompile__()
 
 module WooferSim
 
 import GLFW
 using MuJoCo
 using Rotations
-using Plots
-using Statistics
+# using Plots
+# using Statistics
 using StaticArrays
 
 ## simulation inner loop ##
-include("LCMSim.jl")
+# include("LCMSim.jl")
+include("MPCSim.jl")
 
 ##################################################### globals
 const fontscale = mj.FONTSCALE_200 # can be 100, 150, 200
