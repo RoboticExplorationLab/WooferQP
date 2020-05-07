@@ -55,7 +55,7 @@ function mpcControlWoofer!(torques::Vector{T}, x_est::Vector{T}, t::T, joint_pos
 	   # calculate footstep and generate trajectory (stored in swing params) if needed
 	   if gait.contact_phases[i, controller_params.prev_phase] == 1
 			if gait.contact_phases[i, controller_params.cur_phase] == 0
-	         nextFootstepLocation!(view(swing_params.next_foot_loc, LegIndexToRange(i)), controller_params.cur_foot_loc[LegIndexToRange(i)], x_est[7:9], x_est[12], gait, nextPhase(controller_params.cur_phase, gait), i)
+	         nextFootstepLocation!(swing_params.next_foot_loc, controller_params.cur_foot_loc, x_est[7:9], x_est[12], gait, nextPhase(controller_params.cur_phase, gait), i)
 
 	         # make sure MPC accounts for this next foot location
 	         footstep_config.next_foot_locs[LegIndexToRange(i)] .= swing_params.next_foot_loc[LegIndexToRange(i)]

@@ -2,9 +2,9 @@
 	foot_trajectories::Array{Float64, 2} = zeros(12, 4)
 	next_foot_loc::Vector{Float64} = zeros(12)
 
-	step_height::Float64 = -0.2
+	step_height::Float64 = -0.20
 
-	wn_cart::Float64 = 20
+	wn_cart::Float64 = 50
 	zeta_cart::Float64 = 1.0
 	kp_cart::Float64 = wn_cart^2
 	kd_cart::Float64 = 2*wn_cart*zeta_cart
@@ -43,7 +43,6 @@ function generateFootTrajectory(foot_loc_cur::Vector{T}, v_b::Vector{T}, t0::T, 
 	swing_params.foot_trajectories[1:4, i] 	.= A\b_x
 	swing_params.foot_trajectories[5:8, i] 	.= A\b_y
 	swing_params.foot_trajectories[9:12, i] .= A_z\b_z
-
 end
 
 function calcSwingTorques!(swing_torques::Vector{T}, cur_pos::Vector{T}, cur_vel::Vector{T}, α::Vector{T}, t::T, i::Integer, swing_params::SwingLegParams) where {T<:Number}

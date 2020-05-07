@@ -63,7 +63,9 @@ function simulate()
 	# Allocate everything once
 
 	# desired position
-	x_des = [0.0, 0.0, 0.32, zeros(9)...]
+	# x_des = [0.0, 0.0, 0.32, zeros(9)...]
+	xy_vel = [0.0, 0]
+	x_des = [0.0, 0.0, 0.28, zeros(3)..., xy_vel..., zeros(4)...]
 	# true state information
 	x = zeros(13)
 	x_true = zeros(12)
@@ -79,9 +81,8 @@ function simulate()
 	mpc_update = 0.05
 
 	mpc_config = MPCControllerParams(planning_dt, N)
-	# gait = GaitParams(num_phases=1, contact_phases=[1;1;1;1], phase_times=[1.0]) # standing gait
-	# gait = GaitParams(num_phases=1, contact_phases=[1;0;1;0], phase_times=[1.0]) # standing 3 legged gait
-	gait = GaitParams() # trot gait
+	# gait = createStandingGait()
+	gait = createTrotGait()
 	footstep_config = FootstepPlannerParams()
 	swing_params = SwingLegParams()
 	controller_params = ControllerParams(N=N, mpc_update=mpc_update, x_des=x_des, use_lqr = false)
@@ -158,8 +159,6 @@ function simulate()
 	               joint_vel   .= s.d.sensordata[19:30]
 
 				   mpcControlWoofer!(actuator_torques, x_true, t, joint_pos, joint_vel, controller_params, gait, swing_params, footstep_config, mpc_config)
-                   @show x_true - x_des
-
                    s.d.ctrl .= actuator_torques
                 end
 

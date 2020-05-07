@@ -33,12 +33,12 @@ struct MPCControllerParams
 
 	function MPCControllerParams(dt::Float64, N::Int64; n::Int64=12, m::Int64=12)
 		# initialize model and variables
-		model = Model(OSQP.Optimizer())
+		model = Model(OSQP.Optimizer(verbose=false))
 		x = [Variable(model) for _ = 1:((N+1)*n)]
 		u = [Variable(model) for _ = 1:((N)*n)]
 
 		# initialize quadratic cost parameters
-		Q = Diagonal(repeat([1e3, 1e3, 5e4, 1e3, 1e3, 1e3, 1e2, 1e2, 1e2, 1, 1, 1e2], N+1))
+		Q = Diagonal(repeat([1e4, 1e4, 5e4, 4e3, 4e3, 1e2, 1e4, 1e4, 1e2, 1, 1, 1e2], N+1))
 		R = Diagonal(repeat([1e-2, 1e-2, 1e-4, 1e-2, 1e-2, 1e-4, 1e-2, 1e-2, 1e-4, 1e-2, 1e-2, 1e-4], N))
 
 		x_ref_reshaped = zeros((N+1)*n)
@@ -48,7 +48,6 @@ struct MPCControllerParams
 		B_d = [zeros(n,m) for i=1:N]
 		d_d = [zeros(n) for i=1:N]
 
-		#
 		Q_param = Parameter(()->Q, model)
 		R_param = Parameter(()->R, model)
 
@@ -135,17 +134,24 @@ function LinearizedContinuousDynamicsB(x, r, contacts, J)
 	return [b1; b2; b3; b4]
 end
 
-function generateReferenceTrajectory!(x_ref::Array{T, 2}, x_curr::Vector{T}, x_des::Vector{T}, mpc_config::MPCControllerParams) where {T<:Number}
+function generateReferenceTrajectory!(x_ref::Array{T, 2}, x_curr::Vector{T}, x_des::Vector{T}, mpc_config::MPCControllerParams, integrate::Bool=false) where {T<:Number}
 	# TODO: integrate the x,y,ψ position from the reference
+	α = collect(range(0, 1, length=mpc_config.N+1))
+	# interpolate everything but x, y position
+	if integrate
+		interp_indices = 3:12
+	else
+		interp_indices = 1:12
+	end
 
-	x_diff = 1/mpc_config.N * (x_des - x_curr)
-	x_ref[:,1] .= x_curr
-	for i in 1:mpc_config.N
-		if i<mpc_config.N
-			x_ref[:, i+1] .= x_curr + i*x_diff
-		else
-			x_ref[:, i+1] .= x_des
-		end
+	for i in 1:mpc_config.N+1
+		x_ref[interp_indices, i] .= (1-α[i]) * x_curr[interp_indices] + α[i]*x_des[interp_indices]
+	end
+
+	if integrate
+		# integrate x, y position
+		integ_indices = 1:2
+		x_ref[integ_indices, :] .= repeat(x_curr[integ_indices, 1], 1, mpc_config.N+1) + cumsum(x_ref[7:8, :]*mpc_config.dt, dims=2)
 	end
 end
 
@@ -155,7 +161,8 @@ function solveFootForces!(forces::Vector{T}, x_ref::Array{T, 2}, contacts::Array
 	# foot_locs: 12xN+1 matrix of foot location in body frame over planning horizon
 	N = mpc_config.N
 	dt = mpc_config.dt
-	n =12
+	n = 12
+	m = 12
 
 	mpc_config.x_ref_reshaped .= reshape(x_ref, (N+1)*n, 1)[:]
 
@@ -165,9 +172,20 @@ function solveFootForces!(forces::Vector{T}, x_ref::Array{T, 2}, contacts::Array
 		d_c_i = NonLinearContinuousDynamics(x_ref[select12(i)], mpc_config.u_ref[select12(i)], foot_locs[:, i+1], WOOFER_CONFIG.INERTIA)
 
 		# Euler Discretization
-		mpc_config.A_d[i+1]= Array(I + A_c_i*dt)
-		mpc_config.B_d[i+1] = Array(B_c_i*dt)
-		mpc_config.d_d[i+1] = Array(d_c_i*dt)
+		mpc_config.A_d[i+1] .= Array(I + A_c_i*dt)
+		mpc_config.B_d[i+1] .= Array(B_c_i*dt)
+		mpc_config.d_d[i+1] .= Array(d_c_i*dt)
+
+		if use_lqr
+			mpc_config.u_ref[select12(i)] .= pinv(mpc_config.B_d[i+1])*((I - mpc_config.A_d[i+1])*mpc_config.x_ref_reshaped[select12(i)] - mpc_config.d_d[i+1])
+		end
+	end
+
+	if use_lqr
+		V = dare(mpc_config.A_d[N], mpc_config.B_d[N], mpc_config.Q[1:n, 1:n], mpc_config.R[1:m, 1:m])
+		mpc_config.Q[(N*n+1):((N+1)*n), (N*n+1):((N+1)*n)] .= V
+	else
+		mpc_config.Q[(N*n+1):((N+1)*n), (N*n+1):((N+1)*n)] .= mpc_config.Q[1:n, 1:n]
 	end
 
 	solve!(mpc_config.model)

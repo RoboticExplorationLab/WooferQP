@@ -5,11 +5,15 @@ end
 
 function nextFootstepLocation!(foot_loc, cur_foot_loc::Vector{T}, v_b::Vector{T}, ω_z::T, gait::GaitParams, next_foot_phase::Int, i::Int) where {T<:Number}
 	# implement body velocity heuristic to get next body relative foot location
-  	r_i = Vector((WOOFER_CONFIG::WooferConfig).HIP_LAYOUT[i, :])
+  	# r_i = Vector((WOOFER_CONFIG::WooferConfig).HIP_LAYOUT[i, :])
+	ω = [0, 0, ω_z]
 
-	foot_loc[1] = cur_foot_loc[1] + gait.alpha*v_b[1]*gait.phase_times[next_foot_phase] - gait.beta*r_i[2]*ω_z*gait.phase_times[next_foot_phase]
-	foot_loc[2] = cur_foot_loc[2] + gait.alpha*v_b[2]*gait.phase_times[next_foot_phase] + gait.beta*r_i[1]*ω_z*gait.phase_times[next_foot_phase]
-	foot_loc[3] = cur_foot_loc[3]
+	# foot_loc[1] = cur_foot_loc[1] + gait.alpha*v_b[1]*gait.phase_times[next_foot_phase] #- gait.beta*r_i[2]*ω_z*gait.phase_times[next_foot_phase]
+	# foot_loc[2] = cur_foot_loc[2] + gait.alpha*v_b[2]*gait.phase_times[next_foot_phase] #+ gait.beta*r_i[1]*ω_z*gait.phase_times[next_foot_phase]
+	# foot_loc[3] = cur_foot_loc[3]
+
+	foot_loc[LegIndexToRange(i)] .= cur_foot_loc[LegIndexToRange(i)] + gait.alpha*v_b*gait.phase_times[next_foot_phase] +
+						gait.beta*gait.phase_times[next_foot_phase]*SkewSymmetricMatrix(ω)*cur_foot_loc[LegIndexToRange(i)]
 end
 
 function constructFootHistory!(contacts_future::Array{Int, 2}, foot_locs_future::Array{T}, t::T, x_ref::Array{T}, cur_foot_locs::Vector{T}, mpc_config::MPCControllerParams, gait::GaitParams, foot_params::FootstepPlannerParams) where {T<:Number}
@@ -47,21 +51,20 @@ function constructFootHistory!(contacts_future::Array{Int, 2}, foot_locs_future:
 					# next foot placement must be planned prior to foot being released
 					# next_foot_phase = nextPhase(next_phase, gait)
 
-					nextFootstepLocation!(next_foot_loc, prev_foot_locs, x_ref[7:9, i], x_ref[12, i], gait, nextPhase(next_phase, gait), j)
-					foot_params.next_foot_locs[(3*(j-1)+1):(3*(j-1)+3)] .= next_foot_loc
-					prev_foot_locs[(3*(j-1)+1):(3*(j-1)+3)] .= next_foot_loc
+					nextFootstepLocation!(foot_params.next_foot_locs, prev_foot_locs, x_ref[7:9, i], x_ref[12, i], gait, nextPhase(next_phase, gait), j)
+					prev_foot_locs[LegIndexToRange(j)] .= foot_params.next_foot_locs[LegIndexToRange(j)]
 				else
 					# integrate x_ref via midpoint to get body relative foot location in the future
-					rdot!(r_dot, prev_foot_locs[(3*(j-1)+1):(3*(j-1)+3)], x_ref[10:12, i], x_ref[7:9, i])
-					rdot!(r_dot, prev_foot_locs[(3*(j-1)+1):(3*(j-1)+3)] + mpc_config.dt/2*r_dot, x_ref[10:12, i], x_ref[7:9, i])
-					prev_foot_locs[(3*(j-1)+1):(3*(j-1)+3)] .= prev_foot_locs[(3*(j-1)+1):(3*(j-1)+3)] + mpc_config.dt*r_dot
+					rdot!(r_dot, prev_foot_locs[LegIndexToRange(j)], x_ref[10:12, i], x_ref[7:9, i])
+					rdot!(r_dot, prev_foot_locs[LegIndexToRange(j)] + mpc_config.dt/2*r_dot, x_ref[10:12, i], x_ref[7:9, i])
+					prev_foot_locs[LegIndexToRange(j)] .= prev_foot_locs[LegIndexToRange(j)] + mpc_config.dt*r_dot
 				end
 			else
 				if gait.contact_phases[j, next_phase] == 1
-					prev_foot_locs[(3*(j-1)+1):(3*(j-1)+3)] .= foot_params.next_foot_locs[(3*(j-1)+1):(3*(j-1)+3)]
+					prev_foot_locs[LegIndexToRange(j)] .= foot_params.next_foot_locs[LegIndexToRange(j)]
 				else
 					# doesn't matter if foot not in contact
-					prev_foot_locs[(3*(j-1)+1):(3*(j-1)+3)] .= zeros(3)
+					prev_foot_locs[LegIndexToRange(j)] .= zeros(3)
 				end
 			end
 		end
