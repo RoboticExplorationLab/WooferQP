@@ -31,15 +31,15 @@ struct MPCControllerParams
 	Q::Array{Float64, 2}
 	R::Array{Float64, 2}
 
-	function MPCControllerParams(dt::Float64, N::Int64; n::Int64=12, m::Int64=12)
+	function MPCControllerParams(dt::Float64, N::Int64, q::Vector{Float64}, r::Vector{Float64}; n::Int64=12, m::Int64=12)
 		# initialize model and variables
 		model = Model(OSQP.Optimizer(verbose=false))
 		x = [Variable(model) for _ = 1:((N+1)*n)]
 		u = [Variable(model) for _ = 1:((N)*n)]
 
 		# initialize quadratic cost parameters
-		Q = Diagonal(repeat([1e4, 1e4, 5e4, 4e3, 4e3, 1e2, 1e4, 1e4, 1e2, 1, 1, 1e2], N+1))
-		R = Diagonal(repeat([1e-2, 1e-2, 1e-4, 1e-2, 1e-2, 1e-4, 1e-2, 1e-2, 1e-4, 1e-2, 1e-2, 1e-4], N))
+		Q = Diagonal(repeat(q, N+1))
+		R = Diagonal(repeat(r, N))
 
 		x_ref_reshaped = zeros((N+1)*n)
 		u_ref = zeros((N)*n)
@@ -59,7 +59,7 @@ struct MPCControllerParams
 		d_d_param = [Parameter(()->d_d[i], model) for i=1:N]
 
 		# constants
-		μ = 0.7
+		μ = 1.0
 		min_vert_force = 1
 		max_vert_force = 133
 
@@ -134,11 +134,11 @@ function LinearizedContinuousDynamicsB(x, r, contacts, J)
 	return [b1; b2; b3; b4]
 end
 
-function generateReferenceTrajectory!(x_ref::Array{T, 2}, x_curr::Vector{T}, x_des::Vector{T}, mpc_config::MPCControllerParams, integrate::Bool=false) where {T<:Number}
+function generateReferenceTrajectory!(x_ref::Array{T, 2}, x_curr::Vector{T}, x_des::Vector{T}, mpc_config::MPCControllerParams; vel_ctrl::Bool=false) where {T<:Number}
 	# TODO: integrate the x,y,ψ position from the reference
 	α = collect(range(0, 1, length=mpc_config.N+1))
 	# interpolate everything but x, y position
-	if integrate
+	if vel_ctrl
 		interp_indices = 3:12
 	else
 		interp_indices = 1:12
@@ -148,7 +148,7 @@ function generateReferenceTrajectory!(x_ref::Array{T, 2}, x_curr::Vector{T}, x_d
 		x_ref[interp_indices, i] .= (1-α[i]) * x_curr[interp_indices] + α[i]*x_des[interp_indices]
 	end
 
-	if integrate
+	if vel_ctrl
 		# integrate x, y position
 		integ_indices = 1:2
 		x_ref[integ_indices, :] .= repeat(x_curr[integ_indices, 1], 1, mpc_config.N+1) + cumsum(x_ref[7:8, :]*mpc_config.dt, dims=2)
@@ -184,8 +184,6 @@ function solveFootForces!(forces::Vector{T}, x_ref::Array{T, 2}, contacts::Array
 	if use_lqr
 		V = dare(mpc_config.A_d[N], mpc_config.B_d[N], mpc_config.Q[1:n, 1:n], mpc_config.R[1:m, 1:m])
 		mpc_config.Q[(N*n+1):((N+1)*n), (N*n+1):((N+1)*n)] .= V
-	else
-		mpc_config.Q[(N*n+1):((N+1)*n), (N*n+1):((N+1)*n)] .= mpc_config.Q[1:n, 1:n]
 	end
 
 	solve!(mpc_config.model)

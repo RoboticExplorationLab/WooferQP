@@ -3,6 +3,7 @@ using StaticArrays
 include("Config.jl")
 include("Utilities.jl")
 
+#########################################################################################################
 # Static Array Version
 function ForwardKinematics(α::SVector{3}, i::Integer)
     base = ForwardHipRelativeKinematics(α, i)
@@ -46,7 +47,7 @@ function Force2Torque(f::SVector{12}, α::SVector{12})
 end
 
 #########################################################################################################
-# Dynamic Array Versions 
+# Dynamic Array Versions
 function ForwardHipRelativeKinematics(α::Vector, i::Integer)
     γ = 0.5 * (α[3] - α[2]) + 0.5π
     θ = - 0.5 * (α[2] + α[3])

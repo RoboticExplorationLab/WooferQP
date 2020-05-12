@@ -16,7 +16,7 @@ GaitParams(num_phases, contact_phases, phase_times) = GaitParams(	num_phases,
 																	phase_times,
 																	sum(phase_times),
 																	0.5,
-																	0.0	)
+																	0.5	)
 
 function createTrotGait()
 	num_phases = 4
@@ -49,6 +49,13 @@ function nextPhase(phase::Integer, gait_params::GaitParams)
 	else
 		return phase+1
 	end
+end
+
+function nextFootTimeOnGround(i, phase::Integer, gait_params::GaitParams)
+"""
+Finds the next length of time for which foot i will be on the ground
+"""
+	# TODO
 end
 
 function coordinateExpander!(expanded::Vector, compact::Vector)

@@ -11,8 +11,9 @@ function nextFootstepLocation!(foot_loc, cur_foot_loc::Vector{T}, v_b::Vector{T}
 	# foot_loc[1] = cur_foot_loc[1] + gait.alpha*v_b[1]*gait.phase_times[next_foot_phase] #- gait.beta*r_i[2]*ω_z*gait.phase_times[next_foot_phase]
 	# foot_loc[2] = cur_foot_loc[2] + gait.alpha*v_b[2]*gait.phase_times[next_foot_phase] #+ gait.beta*r_i[1]*ω_z*gait.phase_times[next_foot_phase]
 	# foot_loc[3] = cur_foot_loc[3]
+	xy_select = Diagonal([1, 1, 0])
 
-	foot_loc[LegIndexToRange(i)] .= cur_foot_loc[LegIndexToRange(i)] + gait.alpha*v_b*gait.phase_times[next_foot_phase] +
+	foot_loc[LegIndexToRange(i)] .= cur_foot_loc[LegIndexToRange(i)] + gait.alpha*gait.phase_times[next_foot_phase]*xy_select*v_b +
 						gait.beta*gait.phase_times[next_foot_phase]*SkewSymmetricMatrix(ω)*cur_foot_loc[LegIndexToRange(i)]
 end
 
@@ -50,6 +51,10 @@ function constructFootHistory!(contacts_future::Array{Int, 2}, foot_locs_future:
 				if gait.contact_phases[j, next_phase] == 0
 					# next foot placement must be planned prior to foot being released
 					# next_foot_phase = nextPhase(next_phase, gait)
+
+					# TODO: add these terms
+					# v_b = R*x_est[7:9]
+					# ω = R*x_est[10:12]
 
 					nextFootstepLocation!(foot_params.next_foot_locs, prev_foot_locs, x_ref[7:9, i], x_ref[12, i], gait, nextPhase(next_phase, gait), j)
 					prev_foot_locs[LegIndexToRange(j)] .= foot_params.next_foot_locs[LegIndexToRange(j)]

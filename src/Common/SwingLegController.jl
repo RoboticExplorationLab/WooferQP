@@ -4,7 +4,7 @@
 
 	step_height::Float64 = -0.20
 
-	wn_cart::Float64 = 50
+	wn_cart::Float64 = 100
 	zeta_cart::Float64 = 1.0
 	kp_cart::Float64 = wn_cart^2
 	kd_cart::Float64 = 2*wn_cart*zeta_cart

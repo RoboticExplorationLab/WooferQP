@@ -1,5 +1,4 @@
 using LinearAlgebra
-using Rotations
 using Parameters
 using StaticArrays
 using DataStructures
@@ -80,12 +79,17 @@ function simulate()
 	# frequency of force calculation
 	mpc_update = 0.05
 
-	mpc_config = MPCControllerParams(planning_dt, N)
+	# state penalty in QP
+	q = [1e4, 1e4, 5e4, 4e3, 4e3, 1e2, 1e4, 1e4, 1e2, 1, 1, 1e2]
+	# control penalty in QP
+	r = [1e-2, 1e-2, 1e-4, 1e-2, 1e-2, 1e-4, 1e-2, 1e-2, 1e-4, 1e-2, 1e-2, 1e-4]
+
+	mpc_config = MPCControllerParams(planning_dt, N, q, r)
 	# gait = createStandingGait()
 	gait = createTrotGait()
 	footstep_config = FootstepPlannerParams()
 	swing_params = SwingLegParams()
-	controller_params = ControllerParams(N=N, mpc_update=mpc_update, x_des=x_des, use_lqr = false)
+	controller_params = ControllerParams(N=N, mpc_update=mpc_update, x_des=x_des, use_lqr = false, vel_ctrl = false)
 
     # Loop until the user closes the window
     WooferSim.alignscale(s)
