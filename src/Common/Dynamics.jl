@@ -7,7 +7,7 @@ include("Utilities.jl")
 # Static Array Version
 function ForwardKinematics(α::SVector{3}, i::Integer)
     base = ForwardHipRelativeKinematics(α, i)
-    return base + (WOOFER_CONFIG::WooferConfig).HIP_LAYOUT[i, :]
+    return base + woofer.geometry.hip_layout[i, :]
 end
 
 function ForwardKinematicsAll(α::SVector{12})
@@ -27,11 +27,11 @@ function ForwardHipRelativeKinematics(α::SVector{3}, i::Integer)
     γ = 0.5 * (α[3] - α[2]) + 0.5π
     θ = - 0.5 * (α[2] + α[3])
 
-    d = (WOOFER_CONFIG::WooferConfig).l0 * sin(γ)
-    h1 = (WOOFER_CONFIG::WooferConfig).l0 * cos(γ)
-    h2 = sqrt((WOOFER_CONFIG::WooferConfig).l1^2 - d^2)
+    d = woofer.geometry.upper_link_length * sin(γ)
+    h1 = woofer.geometry.upper_link_length * cos(γ)
+    h2 = sqrt(woofer.geometry.lower_link_length^2 - d^2)
     L = h1 + h2
-    unrotated = SVector{3}(L * sin(θ), (WOOFER_CONFIG::WooferConfig).ABDUCTION_LAYOUT[i], -L * cos(θ))
+    unrotated = SVector{3}(L * sin(θ), woofer.geometry.abduction_layout[i], -L * cos(θ))
     return rotx(α[1]) * unrotated
 end
 
@@ -52,16 +52,16 @@ function ForwardHipRelativeKinematics(α::Vector, i::Integer)
     γ = 0.5 * (α[3] - α[2]) + 0.5π
     θ = - 0.5 * (α[2] + α[3])
 
-    d = (WOOFER_CONFIG::WooferConfig).l0 * sin(γ)
-    h1 = (WOOFER_CONFIG::WooferConfig).l0 * cos(γ)
-    h2 = sqrt((WOOFER_CONFIG::WooferConfig).l1^2 - d^2)
+    d = woofer.geometry.upper_link_length * sin(γ)
+    h1 = woofer.geometry.upper_link_length * cos(γ)
+    h2 = sqrt(woofer.geometry.lower_link_length^2 - d^2)
     L = h1 + h2
-    unrotated = [L * sin(θ), (WOOFER_CONFIG::WooferConfig).ABDUCTION_LAYOUT[i], -L * cos(θ)]
+    unrotated = [L * sin(θ), woofer.geometry.abduction_layout[i], -L * cos(θ)]
     return Vector(rotx(α[1]) * unrotated)
 end
 
 function ForwardKinematics(α::Vector, i::Integer)
-    return ForwardHipRelativeKinematics(α, i) + Vector((WOOFER_CONFIG::WooferConfig).HIP_LAYOUT[i, :])
+    return ForwardHipRelativeKinematics(α, i) + Vector(woofer.geometry.hip_layout[i, :])
 end
 
 function ForwardKinematicsAll(α::Vector)

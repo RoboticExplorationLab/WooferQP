@@ -1,18 +1,21 @@
 using LinearAlgebra
-using Parameters
+using Parametron
+using OSQP
 using StaticArrays
 using DataStructures
 
 include("XMLParser.jl")
 include("../Common/Dynamics.jl")
 include("../Common/Config.jl")
-include("../Common/StateEstimator.jl")
-include("../Common/Rotations.jl")
+# include("../Common/Rotations.jl")
 include("../Common/MPCController.jl")
+include("../Common/Quaternions.jl")
 
 function simulate()
+	woofer = WooferConfig("../Common/Woofer.yaml")
+
     # Create the robot XML file
-    ParseXML()
+    ParseXML(woofer)
     # Get model from local directory
     s = loadmodel("woofer_out.xml", 1200, 900)
 
@@ -84,12 +87,14 @@ function simulate()
 	# control penalty in QP
 	r = [1e-2, 1e-2, 1e-4, 1e-2, 1e-2, 1e-4, 1e-2, 1e-2, 1e-4, 1e-2, 1e-2, 1e-4]
 
-	mpc_config = MPCControllerParams(planning_dt, N, q, r)
+	optimizer = OptimizerParams(planning_dt, N, q, r)
 	# gait = createStandingGait()
 	gait = createTrotGait()
-	footstep_config = FootstepPlannerParams()
-	swing_params = SwingLegParams()
-	controller_params = ControllerParams(N=N, mpc_update=mpc_update, x_des=x_des, use_lqr = false, vel_ctrl = false)
+	swing = SwingLegParams(-0.20, 100, 1)
+
+	use_lqr = false
+	vel_ctrl = false
+	param = ControllerParams(N, mpc_update, x_des, use_lqr, vel_ctrl, optimizer, gait, swing)
 
     # Loop until the user closes the window
     WooferSim.alignscale(s)
@@ -162,7 +167,7 @@ function simulate()
 	               joint_pos   .= s.d.sensordata[7:18]
 	               joint_vel   .= s.d.sensordata[19:30]
 
-				   mpcControlWoofer!(actuator_torques, x_true, t, joint_pos, joint_vel, controller_params, gait, swing_params, footstep_config, mpc_config)
+				   mpcControlWoofer!(actuator_torques, x_true, t, joint_pos, joint_vel, param)
                    s.d.ctrl .= actuator_torques
                 end
 

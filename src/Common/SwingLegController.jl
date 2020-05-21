@@ -1,23 +1,12 @@
-@with_kw struct SwingLegParams
-	foot_trajectories::Array{Float64, 2} = zeros(12, 4)
-	next_foot_loc::Vector{Float64} = zeros(12)
-
-	step_height::Float64 = -0.20
-
-	wn_cart::Float64 = 100
-	zeta_cart::Float64 = 1.0
-	kp_cart::Float64 = wn_cart^2
-	kd_cart::Float64 = 2*wn_cart*zeta_cart
-	J::Matrix{Float64} = zeros(3,3)
-end
-
-function generateFootTrajectory(foot_loc_cur::Vector{T}, v_b::Vector{T}, t0::T, tf::T, i::Int, swing_params::SwingLegParams) where {T<:Number}
+function generateFootTrajectory(v_b::Vector, t0::T, tf::T, i::Int, param::ControllerParams) where {T<:Number}
 	#=
 	Generate a body relative trajectory for the ith foot via spline interpolation
 	This function is called when the phase is switched to a no contact phase
 
-	Updated foot location must be put into SwingLegParams instantiation
+	Updated foot location taken from param.param.next_foot_loc
 	=#
+
+	foot_loc_cur = param.cur_foot_loc[LegIndexToRange(i)]
 
 	# eps = 0.05
 	eps = 0.0
@@ -29,8 +18,8 @@ function generateFootTrajectory(foot_loc_cur::Vector{T}, v_b::Vector{T}, t0::T, 
 		 3*tf^2 2*tf^2 	1 	0]
 
 	# TODO: add in omega cross term here? probably doesn't matter...
-	b_x = [foot_loc_cur[1], swing_params.next_foot_loc[3*(i-1)+1], -v_b[1], -v_b[1]]
-	b_y = [foot_loc_cur[2], swing_params.next_foot_loc[3*(i-1)+2], -v_b[2], -v_b[2]]
+	b_x = [foot_loc_cur[1], param.next_foot_loc[3*(i-1)+1], -v_b[1], -v_b[1]]
+	b_y = [foot_loc_cur[2], param.next_foot_loc[3*(i-1)+2], -v_b[2], -v_b[2]]
 
 	# generate cubic spline in z to enforce height constraint and terminal velocity constraint
 	A_z =  [t0^3				t0^2				t0				1;
@@ -38,30 +27,32 @@ function generateFootTrajectory(foot_loc_cur::Vector{T}, v_b::Vector{T}, t0::T, 
 			(0.5*(tf+t0))^3		(0.5*(tf+t0))^2		(0.5*(tf+t0))	1;
 			3*tf^2 				2*tf^2 				1 				0]
 
-	b_z = [foot_loc_cur[3], swing_params.next_foot_loc[3*(i-1)+3], swing_params.step_height, -eps]
+	b_z = [foot_loc_cur[3], param.next_foot_loc[3*(i-1)+3], param.swing.step_height, -eps]
 
-	swing_params.foot_trajectories[1:4, i] 	.= A\b_x
-	swing_params.foot_trajectories[5:8, i] 	.= A\b_y
-	swing_params.foot_trajectories[9:12, i] .= A_z\b_z
+	param.swing.foot_trajectories[1:4, i] 	.= A\b_x
+	param.swing.foot_trajectories[5:8, i] 	.= A\b_y
+	param.swing.foot_trajectories[9:12, i] .= A_z\b_z
 end
 
-function calcSwingTorques!(swing_torques::Vector{T}, cur_pos::Vector{T}, cur_vel::Vector{T}, α::Vector{T}, t::T, i::Integer, swing_params::SwingLegParams) where {T<:Number}
+function calcSwingTorques(cur_vel::Vector{T}, α::Vector{T}, t::T, i::Integer, param::ControllerParams) where {T<:Number}
 	#=
 	PD cartesian controller around swing leg trajectory
+
+	puts swing_torques into param
 	=#
 
 	t_p = [t^3, t^2, t, 1]
 	t_v = [3*t^2, 2*t^2, 1, 0]
 
-	r_des = [dot(swing_params.foot_trajectories[1:4,i], t_p),
-			 dot(swing_params.foot_trajectories[5:8,i], t_p),
-			 dot(swing_params.foot_trajectories[9:12,i], t_p)]
+	r_des = [dot(param.swing.foot_trajectories[1:4,i], t_p),
+			 dot(param.swing.foot_trajectories[5:8,i], t_p),
+			 dot(param.swing.foot_trajectories[9:12,i], t_p)]
 
-	v_des = [dot(swing_params.foot_trajectories[1:4,i], t_v),
-			 dot(swing_params.foot_trajectories[5:8,i], t_v),
-			 dot(swing_params.foot_trajectories[9:12,i], t_v)]
+	v_des = [dot(param.swing.foot_trajectories[1:4,i], t_v),
+			 dot(param.swing.foot_trajectories[5:8,i], t_v),
+			 dot(param.swing.foot_trajectories[9:12,i], t_v)]
 
-	swing_params.J .= LegJacobian(α, i)
+	J = LegJacobian(α, i)
 
-	swing_torques .= swing_params.J' * (swing_params.kp_cart*(r_des - cur_pos) + swing_params.kd_cart*(v_des - cur_vel))
+	return J' * (param.swing.kp_cart*(r_des - param.cur_foot_loc[LegIndexToRange(i)]) + param.swing.kd_cart*(v_des - cur_vel))
 end

@@ -37,11 +37,11 @@ function initLQRParams(;dt::AbstractFloat, x0::SVector{12}, rxy_penalty=1e1, rz_
     B_c = zeros(12, 12)
 
     for j = 1:4
-        B_c[7:9, LegIndexToRange(j)] .= 1 / WOOFER_CONFIG.SPRUNG_MASS *
+        B_c[7:9, LegIndexToRange(j)] .= 1 / woofer.inertial.sprung_mass *
                                              Matrix{Float64}(I, 3, 3)
 
         r_hat = skew(foot_locs[SLegIndexToRange(j)])
-        B_c[10:12, SLegIndexToRange(j)] .= inv(WOOFER_CONFIG.INERTIA) * r_hat * rotmat(inv(x_q))
+        B_c[10:12, SLegIndexToRange(j)] .= inv(woofer.inertial.body_inertia) * r_hat * rotmat(inv(x_q))
     end
 
     # First order approximation of zero order hold
@@ -63,7 +63,7 @@ function initLQRParams(;dt::AbstractFloat, x0::SVector{12}, rxy_penalty=1e1, rz_
     R = Diagonal(SVector{12}(repeat([fxy_penalty, fxy_penalty, fz_penalty], 4)))
     L = SMatrix{12,12}(dlqr(A_d, B_d, Q, R))
     V = SMatrix{12,12}(dare(A_d, B_d, Q, R))
-    # u0 = SVector{12}([0, 0, 1.0, 0, 0, 1.0, 0, 0, 1.0, 0, 0, 1.0] * WOOFER_CONFIG.MASS * 9.81 / 4)
+    # u0 = SVector{12}([0, 0, 1.0, 0, 0, 1.0, 0, 0, 1.0, 0, 0, 1.0] * woofer.inertial.sprung_mass * 9.81 / 4)
 
     g = [0, 0, 0, 0, 0, 0, 0, 0, -9.81, 0, 0, 0]*dt
     u0 = SVector{12}(pinv(B_d)*((I - A_d)*x0 - g))

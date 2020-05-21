@@ -1,52 +1,129 @@
-using Parameters
-using LinearAlgebra
+import YAML
 using StaticArrays
+using LinearAlgebra
 
-@with_kw struct WooferConfig
-    FRAME_MASS::Float64 = 3.0
-    MODULE_MASS::Float64 = 1.033
-    THIGH_MASS::Float64 = 0.070
-    SHIN_MASS::Float64 = 0.059
-    TOTAL_LEG_MASS::Float64 = (THIGH_MASS + SHIN_MASS) * 2
-
-    TOTAL_MASS::Float64 = FRAME_MASS + 4 * MODULE_MASS + 4 * TOTAL_LEG_MASS
-    SPRUNG_MASS::Float64 = FRAME_MASS + 4 * MODULE_MASS + THIGH_MASS * 8
-
-    # Robot joint limits
-    MAX_JOINT_TORQUE::Float64 = 12
-    MAX_LEG_FORCE::Float64 = 133
-    REVOLUTE_RANGE::Float64 = 3
-    PRISMATIC_RANGE::Float64 = 0.18
-
-    # Robot geometry
-    LEG_FB::Float64 = 0.23# front-back distance from center line to leg axis
-    LEG_LR::Float64 = 0.109 # left-right distance from center line to leg plane
-    ABDUCTION_OFFSET::Float64 = 0.064 # distance from abduction axis to leg
-    FOOT_RADIUS::Float64 = 0.02
-
-    HIP_LAYOUT::SMatrix{4, 3, Float64, 12} = @SMatrix  [LEG_FB -LEG_LR 0;
-                        LEG_FB  LEG_LR 0;
-                        -LEG_FB -LEG_LR 0;
-                        -LEG_FB  LEG_LR 0]
-    ABDUCTION_LAYOUT::SVector{4, Float64} = @SVector [-ABDUCTION_OFFSET, ABDUCTION_OFFSET, -ABDUCTION_OFFSET, ABDUCTION_OFFSET]
-
-    L::Float64 = 0.66
-    W::Float64 = 0.176
-    T::Float64 = 0.092
-    Ix::Float64 = SPRUNG_MASS / 12 * (W^2 + T^2)
-    Iy::Float64 = SPRUNG_MASS / 4 * (L^2 + T^2)
-    Iz::Float64 = SPRUNG_MASS / 4 * (L^2 + W^2)
-    INERTIA::SMatrix{3, 3, Float64, 9} = Diagonal(@SVector [Ix, Iy, Iz])
-    l0::Float64 = 0.18
-    l1::Float64 = 0.32
+struct InertialConfig
+    frame_mass::Float64
+    module_mass::Float64
+    upper_link_mass::Float64
+    lower_link_mass::Float64
+    leg_mass::Float64
+    robot_mass::Float64
+    sprung_mass::Float64
+    body_inertia::SMatrix{3,3,Float64,9}
 end
 
-WOOFER_CONFIG = WooferConfig()
-
-@with_kw struct EnvironmentConfig
-    MU::Float64 = 1.5 # coeff friction
-    SIM_STEPS::Int = 10000 # simulation steps to take
-    DT::Float64 = 0.0001 # timestep [s]
+struct ActuatorConfig
+    max_joint_torque::Float64
+    max_joint_range::Float64
 end
 
-ENVIRONMENT_CONFIG = EnvironmentConfig()
+struct GeometryConfig
+    hip_center_y::Float64 # front-back distance from center line to leg axis
+    hip_center_x::Float64  # left-right distance from center line to leg plane
+    abduction_offset::Float64 # distance from abduction axis to leg
+    foot_radius::Float64
+
+    module_length::Float64
+    module_width::Float64
+    module_height::Float64
+
+    hip_layout::SMatrix{4,3,Float64,12}
+    feet_layout::SMatrix{4,3,Float64,12}
+    abduction_layout::SVector{4,Float64}
+    body_length::Float64
+    body_width::Float64
+    body_height::Float64
+    upper_link_length::Float64
+    lower_link_length::Float64
+end
+
+
+struct WooferConfig
+    inertial::InertialConfig
+    actuator::ActuatorConfig
+    geometry::GeometryConfig
+end
+
+function WooferConfig(filename::String)
+    data = YAML.load(open(filename))
+
+    # Inertial
+    frame_mass = data["inertial"]["frame_mass"]
+    module_mass = data["inertial"]["module_mass"]
+    upper_link_mass = data["inertial"]["upper_link_mass"]
+    lower_link_mass = data["inertial"]["lower_link_mass"]
+    leg_mass = (upper_link_mass + lower_link_mass) * 2
+    robot_mass = frame_mass + 4 * module_mass + 4 * leg_mass
+    sprung_mass = frame_mass + 4 * module_mass + 8 * upper_link_mass
+    body_ix = data["inertial"]["body_ix"]
+    body_iy = data["inertial"]["body_iy"]
+    body_iz = data["inertial"]["body_iz"]
+    body_inertia = Diagonal(@SVector [body_ix, body_iy, body_iz])
+    inertial = InertialConfig(
+        frame_mass,
+        module_mass,
+        upper_link_mass,
+        lower_link_mass,
+        leg_mass,
+        robot_mass,
+        sprung_mass,
+        body_inertia,
+    )
+
+    # Actuator
+    max_joint_torque = data["actuator"]["max_joint_torque"]
+    joint_range = data["actuator"]["revolute_range"]
+    actuator = ActuatorConfig(max_joint_torque, joint_range)
+
+    # Geometry
+    hip_center_y = data["geomtry"]["hip_center_y"]
+    hip_center_x = data["geomtry"]["hip_center_x"]
+    abduction_offset = data["geomtry"]["abduction_offset"]
+    foot_radius = data["geomtry"]["foot_radius"]
+    module_length = data["geomtry"]["module_length"]
+    module_width = data["geomtry"]["module_width"]
+    module_height = data["geomtry"]["module_height"]
+    hip_layout = @SMatrix ([
+        hip_center_x -hip_center_y 0
+        hip_center_x hip_center_y 0
+        -hip_center_x -hip_center_y 0
+        -hip_center_x hip_center_y 0
+    ])
+    abduction_layout = @SVector([
+        -abduction_offset,
+        abduction_offset,
+        -abduction_offset,
+        abduction_offset,
+    ])
+    feet_layout = hip_layout + ([@SVector(zeros(4)) abduction_layout @SVector(zeros(4))])
+    body_length = data["geomtry"]["body_length"]
+    body_width = data["geomtry"]["body_width"]
+    body_height = data["geomtry"]["body_height"]
+    upper_link_length = data["geomtry"]["upper_link_length"]
+    lower_link_length = data["geomtry"]["lower_link_length"]
+    geometry = GeometryConfig(
+        hip_center_y,
+        hip_center_x,
+        abduction_offset,
+        foot_radius,
+        module_length,
+        module_width,
+        module_height,
+        hip_layout,
+        feet_layout,
+        abduction_layout,
+        body_length,
+        body_width,
+        body_height,
+        upper_link_length,
+        lower_link_length,
+    )
+    return WooferConfig(inertial, actuator, geometry)
+end
+
+function WooferConfig()
+    return WooferConfig(joinpath(@__DIR__,"Woofer.yaml"))
+end
+
+woofer = WooferConfig()

@@ -15,7 +15,7 @@ include("Rotations.jl")
 
     y_meas_joint::SVector{12, Float64} = @SVector zeros(12)
     y_meas_mocap::SVector{6, Float64} = @SVector zeros(6)
-    
+
     y_pred_joint::SVector{12, Float64} = @SVector zeros(12)
     y_pred_mocap::SVector{6, Float64} = @SVector zeros(6)
 
@@ -86,8 +86,8 @@ function StateEstimatorDynamicsPropogation(
 	x_q = reconstructq(x_ϕ)
 
 	# Robot body mass and inertia
-	m = (WOOFER_CONFIG::WooferConfig).SPRUNG_MASS
-	J = (WOOFER_CONFIG::WooferConfig).INERTIA
+	m = woofer.inertial.sprung_mass
+	J = woofer.inertial.body_inertia
 
     # Convert from continuous system to discrete system
     # TODO handle when estimator errors when the robot falls
@@ -151,7 +151,7 @@ function StateEstimatorDynamicsPropogation(
 	est_params.nu_joint = est_params.y_meas_joint - est_params.y_pred_joint
 	S = C_joint * est_params.P_ * C_joint' + est_params.R_joint
     K = est_params.P_ * C_joint' * inv(S)
-    
+
 	# TODO: implement outlier detection that still allows multiple feets at once
 	est_params.x = est_params.x_ + K * est_params.nu_joint
 
