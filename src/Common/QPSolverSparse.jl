@@ -3,12 +3,16 @@ This file turns the discrete MPC problem into a quadratic problem via a sparse
 formulation.
 """
 
-function NonLinearContinuousDynamics(x, u, r, J)
+function mass(contacts)
+	return woofer.inertial.sprung_mass + sum([woofer.inertial.lower_link_mass*(1-contacts[i]) for i=1:4])
+end
+
+function NonLinearContinuousDynamics(x, u, r, J, contacts)
 	x_dot = zeros(12)
 
 	x_dot[1:3] = x[7:9]
 	x_dot[4:6] = 0.5*V()*L_q(ThreeParamToQuat(x[4:6]))*VecToQuat(x[10:12])
-	x_dot[7:9] = 1/woofer.inertial.sprung_mass * sum(reshape(u, 3, 4), dims=2) + [0; 0; -9.81]
+	x_dot[7:9] = 1/mass(contacts) * sum(reshape(u, 3, 4), dims=2) + [0; 0; -9.81]
 
 	torque_sum = zeros(3)
 	for i=1:4
@@ -38,7 +42,7 @@ end
 function LinearizedContinuousDynamicsB(x, r, contacts, J)
 	b1 = zeros(3, 12)
 	b2 = zeros(3, 12)
-	b3 = 1/woofer.inertial.sprung_mass*repeat(Diagonal(ones(3)), 1, 4)
+	b3 = 1/mass(contacts)*repeat(Diagonal(ones(3)), 1, 4)
 
 	b4 = zeros(3,12)
 	for i=1:4
@@ -83,7 +87,7 @@ function solveFootForces!(param::ControllerParams) where {T<:Number}
 	for i=0:N-1
 		A_c_i = LinearizedContinuousDynamicsA(param.x_ref[select12(i)], woofer.inertial.body_inertia)
 		B_c_i = LinearizedContinuousDynamicsB(param.x_ref[select12(i)], param.foot_locs[:, i+1], param.contacts[:, i+1], woofer.inertial.body_inertia)
-		d_c_i = NonLinearContinuousDynamics(param.x_ref[select12(i)], param.optimizer.u_ref[select12(i)], param.foot_locs[:, i+1], woofer.inertial.body_inertia)
+		d_c_i = NonLinearContinuousDynamics(param.x_ref[select12(i)], param.optimizer.u_ref[select12(i)], param.foot_locs[:, i+1], woofer.inertial.body_inertia, param.contacts[:, i+1])
 
 		# Euler Discretization
 		param.optimizer.A_d[i+1] .= Array(I + A_c_i*dt)
