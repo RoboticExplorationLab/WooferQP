@@ -1,4 +1,7 @@
-include("Structs.jl")
+include("Structs/OptimizerParams.jl")
+include("Structs/SwingLegParams.jl")
+include("Structs/GaitParams.jl")
+include("Structs/ControllerParams.jl")
 include("QPSolverSparse.jl")
 include("SwingLegController.jl")
 include("Gait.jl")
@@ -13,24 +16,21 @@ function mpcControlWoofer!(torques::Vector{T}, x_est::Vector{T}, t::T, joint_pos
 	param.active_feet = param.gait.contact_phases[:, param.cur_phase]
 	coordinateExpander!(param.active_feet_12, param.active_feet)
 
+	R = QuatToRotMatrix(ThreeParamToQuat(x_est[4:6]))' # inertial -> body
+	v_b = R*x_est[7:9]
+	ω = R*x_est[10:12]
+
 	# swing leg
 	for i in 1:4
 		# calculate footstep and generate trajectory (stored in swing params) if needed
 		if param.gait.contact_phases[i, param.prev_phase] == 1
 			if param.gait.contact_phases[i, param.cur_phase] == 0
-				R = QuatToRotMatrix(ThreeParamToQuat(x_est[4:6]))'
-				v_b = R*x_est[7:9]
-				ω = R*x_est[10:12]
-
 				next_foot_phase = nextPhase(param.cur_phase, param)
 				param.next_foot_loc[LegIndexToRange(i)] = nextFootstepLocation(v_b, ω[3], next_foot_phase, i, param)
 
 				# make sure MPC accounts for this next foot location
 				param.planner_foot_loc[LegIndexToRange(i)] .= param.next_foot_loc[LegIndexToRange(i)]
 
-				print("Next Leg $i Position: ")
-				print(param.next_foot_loc[LegIndexToRange(i)])
-				println()
 				generateFootTrajectory(x_est[7:9], t, t+param.gait.phase_times[param.cur_phase], i, param)
 			end
 		end
@@ -52,6 +52,8 @@ function mpcControlWoofer!(torques::Vector{T}, x_est::Vector{T}, t::T, joint_pos
 		generateReferenceTrajectory!(x_est, param)
 		constructFootHistory!(t, param)
 		solveFootForces!(param)
+
+		@show (param.x_des - x_est)[7:9]
 
 		param.last_t = t
 	end

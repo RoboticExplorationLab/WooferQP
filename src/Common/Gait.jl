@@ -20,7 +20,7 @@ end
 # """
 # Finds the next length of time for which foot i will be on the ground
 # """
-# 	# TODO
+# 	# TODO: makes planner more general
 # end
 
 function coordinateExpander!(expanded::Vector, compact::Vector)
