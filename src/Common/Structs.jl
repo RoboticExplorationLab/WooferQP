@@ -149,6 +149,7 @@ mutable struct ControllerParams
 	planner_foot_loc # footstep location for FootstepPlanner
 	next_foot_loc # actual planned next foot step for SwingLegController
 
+	nom_foot_loc # foot location with all joint angles = 0
 
 	N # mpc number of time steps
 	use_lqr # use LQR terminal cost to go in optimization
@@ -189,6 +190,8 @@ mutable struct ControllerParams
 		planner_foot_loc = zeros(12)
 		next_foot_loc = zeros(12)
 
+		nom_foot_loc = ForwardKinematicsAll(zeros(12))
+
 		# ensures that foot forces are calculated at start
 		last_t = -1
 
@@ -200,7 +203,7 @@ mutable struct ControllerParams
 		forces = [0, 0, 1.0, 0, 0, 1.0, 0, 0, 1.0, 0, 0, 1.0]*woofer.inertial.sprung_mass*9.81/4
 
 		new(mpc_torques, swing_torques, prev_phase, cur_phase, cur_foot_loc,
-			active_feet, active_feet_12, planner_foot_loc, next_foot_loc, N, use_lqr, vel_ctrl, mpc_update,
+			active_feet, active_feet_12, planner_foot_loc, next_foot_loc, nom_foot_loc, N, use_lqr, vel_ctrl, mpc_update,
 			last_t, contacts, foot_locs, x_ref, forces, x_des, optimizer, gait, swing)
 	end
 end
