@@ -28,8 +28,8 @@ function mpcControlWoofer!(torques::Vector{T}, x_est::Vector{T}, t::T, joint_pos
 				# make sure MPC accounts for this next foot location
 				param.planner_foot_loc[LegIndexToRange(i)] .= param.next_foot_loc[LegIndexToRange(i)]
 
-				print("Leg $i Difference: ")
-				print(param.next_foot_loc[LegIndexToRange(i)] - param.cur_foot_loc[LegIndexToRange(i)])
+				print("Next Leg $i Position: ")
+				print(param.next_foot_loc[LegIndexToRange(i)])
 				println()
 				generateFootTrajectory(x_est[7:9], t, t+param.gait.phase_times[param.cur_phase], i, param)
 			end

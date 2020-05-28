@@ -12,7 +12,7 @@ actuator:
   max_leg_force: 133.0
   revolute_range: 3.0
 
-geomtry:
+geometry:
   hip_center_y: 0.109
   hip_center_x: 0.230
   abduction_offset: 0.064

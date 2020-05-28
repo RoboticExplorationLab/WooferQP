@@ -77,13 +77,13 @@ function WooferConfig(filename::String)
     actuator = ActuatorConfig(max_joint_torque, joint_range)
 
     # Geometry
-    hip_center_y = data["geomtry"]["hip_center_y"]
-    hip_center_x = data["geomtry"]["hip_center_x"]
-    abduction_offset = data["geomtry"]["abduction_offset"]
-    foot_radius = data["geomtry"]["foot_radius"]
-    module_length = data["geomtry"]["module_length"]
-    module_width = data["geomtry"]["module_width"]
-    module_height = data["geomtry"]["module_height"]
+    hip_center_y = data["geometry"]["hip_center_y"]
+    hip_center_x = data["geometry"]["hip_center_x"]
+    abduction_offset = data["geometry"]["abduction_offset"]
+    foot_radius = data["geometry"]["foot_radius"]
+    module_length = data["geometry"]["module_length"]
+    module_width = data["geometry"]["module_width"]
+    module_height = data["geometry"]["module_height"]
     hip_layout = @SMatrix ([
         hip_center_x -hip_center_y 0
         hip_center_x hip_center_y 0
@@ -97,11 +97,11 @@ function WooferConfig(filename::String)
         abduction_offset,
     ])
     feet_layout = hip_layout + ([@SVector(zeros(4)) abduction_layout @SVector(zeros(4))])
-    body_length = data["geomtry"]["body_length"]
-    body_width = data["geomtry"]["body_width"]
-    body_height = data["geomtry"]["body_height"]
-    upper_link_length = data["geomtry"]["upper_link_length"]
-    lower_link_length = data["geomtry"]["lower_link_length"]
+    body_length = data["geometry"]["body_length"]
+    body_width = data["geometry"]["body_width"]
+    body_height = data["geometry"]["body_height"]
+    upper_link_length = data["geometry"]["upper_link_length"]
+    lower_link_length = data["geometry"]["lower_link_length"]
     geometry = GeometryConfig(
         hip_center_y,
         hip_center_x,
