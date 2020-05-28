@@ -66,7 +66,7 @@ function simulate()
 
 	# desired position
 	# x_des = [0.0, 0.0, 0.32, zeros(9)...]
-	xy_vel = [0.15, 0]
+	xy_vel = [0.0, 0]
 	x_des = [0.0, 0.0, 0.28, zeros(3)..., xy_vel..., zeros(4)...]
 	# true state information
 	x = zeros(13)
@@ -83,7 +83,7 @@ function simulate()
 	mpc_update = 0.05
 
 	# state penalty in QP
-	q = [1e4, 1e4, 5e4, 4e3, 4e3, 1e2, 1e4, 1e4, 1e2, 1, 1, 1e2]
+	q = [1e4, 1e4, 5e4, 4e3, 4e3, 1e2, 1e4, 1e4, 1e2, 1e2, 1e2, 1e3]
 	# q = [1e-4, 1e-4, 5e4, 1e4, 1e4, 1e2, 1e4, 1e4, 1e2, 1e2, 1e2, 5e3]
 	# control penalty in QP
 	r = [1e-2, 1e-2, 1e-4, 1e-2, 1e-2, 1e-4, 1e-2, 1e-2, 1e-4, 1e-2, 1e-2, 1e-4]

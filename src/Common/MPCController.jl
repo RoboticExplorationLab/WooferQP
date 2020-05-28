@@ -25,8 +25,7 @@ function mpcControlWoofer!(torques::Vector{T}, x_est::Vector{T}, t::T, joint_pos
 		# calculate footstep and generate trajectory (stored in swing params) if needed
 		if param.gait.contact_phases[i, param.prev_phase] == 1
 			if param.gait.contact_phases[i, param.cur_phase] == 0
-				next_foot_phase = nextPhase(param.cur_phase, param)
-				param.next_foot_loc[LegIndexToRange(i)] = nextFootstepLocation(v_b, ω[3], next_foot_phase, i, param)
+				param.next_foot_loc[LegIndexToRange(i)] = nextFootstepLocation(v_b, ω[3], param.cur_phase, i, param)
 
 				# make sure MPC accounts for this next foot location
 				param.planner_foot_loc[LegIndexToRange(i)] .= param.next_foot_loc[LegIndexToRange(i)]
@@ -40,8 +39,7 @@ function mpcControlWoofer!(torques::Vector{T}, x_est::Vector{T}, t::T, joint_pos
 		# actually calculate swing torques
 		if param.gait.contact_phases[i, param.cur_phase] == 0
 			if (t - param.last_replan_t) > param.replan_update
-				next_foot_phase = nextPhase(param.cur_phase, param)
-				param.next_foot_loc[LegIndexToRange(i)] = nextFootstepLocation(v_b, ω[3], next_foot_phase, i, param)
+				param.next_foot_loc[LegIndexToRange(i)] = nextFootstepLocation(v_b, ω[3], param.cur_phase, i, param)
 
 				# make sure MPC accounts for this next foot location
 				param.planner_foot_loc[LegIndexToRange(i)] .= param.next_foot_loc[LegIndexToRange(i)]

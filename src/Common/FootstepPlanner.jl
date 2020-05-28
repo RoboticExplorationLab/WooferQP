@@ -1,13 +1,16 @@
-function nextFootstepLocation(v_b::Vector{T}, ω_z::T, next_foot_phase::Int, i::Int, param::ControllerParams) where {T<:Number}
+function nextFootstepLocation(v_b::Vector{T}, ω_z::T, cur_phase::Int, i::Int, param::ControllerParams) where {T<:Number}
 	# implement body velocity heuristic to get next body relative foot location
 	ω = [0, 0, ω_z]
 
 	xy_select = Diagonal([1, 1, 0])
 	z_select = Diagonal([0, 0, 1])
 
+	next_phase = nextPhase(cur_phase, param)
+
 	# TODO: use rotation matrix instead of ω cross term
-	next_foot_loc = param.nom_foot_loc[LegIndexToRange(i)] + param.gait.alpha*param.gait.phase_times[next_foot_phase]*xy_select*v_b +
-						param.gait.beta*param.gait.phase_times[next_foot_phase]*SkewSymmetricMatrix(ω)*param.cur_foot_loc[LegIndexToRange(i)]
+	next_foot_loc = param.nom_foot_loc[LegIndexToRange(i)] + 
+						param.gait.alpha*param.gait.phase_times[next_phase]*xy_select*v_b +
+						param.gait.beta*param.gait.phase_times[next_phase]*SkewSymmetricMatrix(ω)*param.cur_foot_loc[LegIndexToRange(i)]
 
 	return next_foot_loc
 end
@@ -54,7 +57,7 @@ function constructFootHistory!(t::T, param::ControllerParams) where {T<:Number}
 				if param.gait.contact_phases[j, next_phase] == 0
 					# next foot placement must be planned prior to foot being released
 					# next_foot_phase = nextPhase(next_phase, param)
-					param.planner_foot_loc[LegIndexToRange(j)] .= nextFootstepLocation(v_b_i, ω_b_i[3], nextPhase(next_phase, param), j, param)
+					param.planner_foot_loc[LegIndexToRange(j)] .= nextFootstepLocation(v_b_i, ω_b_i[3], next_phase, j, param)
 					prev_foot_locs[LegIndexToRange(j)] .= param.planner_foot_loc[LegIndexToRange(j)]
 				else
 					# integrate param.x_ref via midpoint to get body relative foot location in the future
