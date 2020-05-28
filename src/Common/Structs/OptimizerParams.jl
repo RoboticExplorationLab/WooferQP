@@ -72,7 +72,7 @@ struct OptimizerParams
 			# Dynamics constraints
 			@constraint(model, x[select12(i+1)] == A_d_param[i+1]*(x[select12(i)] - x_ref_param[select12(i)])
 			 										+ B_d_param[i+1]*(u[select12(i)] - u_ref_param[select12(i)]) +
-													d_d_param[i+1] + x_ref_param[select12(i)])
+													d_d_param[i+1])
 		end
 
 		new(dt, N, model, x, u, x_ref_reshaped, u_ref, A_d, B_d, d_d, Q, R)

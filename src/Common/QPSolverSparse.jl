@@ -88,7 +88,7 @@ function solveFootForces!(param::ControllerParams) where {T<:Number}
 		# Euler Discretization
 		param.optimizer.A_d[i+1] .= Array(I + A_c_i*dt)
 		param.optimizer.B_d[i+1] .= Array(B_c_i*dt)
-		param.optimizer.d_d[i+1] .= Array(d_c_i*dt)
+		param.optimizer.d_d[i+1] .= Array(d_c_i*dt + param.x_ref[select12(i)])
 
 		if param.use_lqr
 			param.optimizer.u_ref[select12(i)] .= pinv(param.optimizer.B_d[i+1])*((I - param.optimizer.A_d[i+1])*param.optimizer.x_ref_reshaped[select12(i)] - param.optimizer.d_d[i+1])
