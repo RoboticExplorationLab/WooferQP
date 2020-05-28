@@ -12,7 +12,7 @@ function mpcControlWoofer!(torques::Vector{T}, x_est::Vector{T}, t::T, joint_pos
 	param.cur_foot_loc = ForwardKinematicsAll(joint_pos)
 
 	# prev phase -> cur_phase check contacts to regenerate swing
-	param.cur_phase = getPhase(t, param)
+	(param.cur_phase, param.cur_phase_time) = getPhase(t, param, return_time=true)
 	param.active_feet = param.gait.contact_phases[:, param.cur_phase]
 	coordinateExpander!(param.active_feet_12, param.active_feet)
 
@@ -31,12 +31,25 @@ function mpcControlWoofer!(torques::Vector{T}, x_est::Vector{T}, t::T, joint_pos
 				# make sure MPC accounts for this next foot location
 				param.planner_foot_loc[LegIndexToRange(i)] .= param.next_foot_loc[LegIndexToRange(i)]
 
-				generateFootTrajectory(x_est[7:9], t, t+param.gait.phase_times[param.cur_phase], i, param)
+				generateFootTrajectory(param.cur_foot_loc[LegIndexToRange(i)], x_est[7:9], t, t+param.gait.phase_times[param.cur_phase], i, param)
+				param.trajectory_foot_loc[LegIndexToRange(i)] = param.cur_foot_loc[LegIndexToRange(i)]
+				param.last_replan_t = t
 			end
 		end
 
 		# actually calculate swing torques
 		if param.gait.contact_phases[i, param.cur_phase] == 0
+			if (t - param.last_replan_t) > param.replan_update
+				next_foot_phase = nextPhase(param.cur_phase, param)
+				param.next_foot_loc[LegIndexToRange(i)] = nextFootstepLocation(v_b, ω[3], next_foot_phase, i, param)
+
+				# make sure MPC accounts for this next foot location
+				param.planner_foot_loc[LegIndexToRange(i)] .= param.next_foot_loc[LegIndexToRange(i)]
+
+				generateFootTrajectory(param.trajectory_foot_loc[LegIndexToRange(i)], x_est[7:9], (t-param.cur_phase_time), (t-param.cur_phase_time)+param.gait.phase_times[param.cur_phase], i, param)
+				param.last_replan_t = t
+			end
+
 			# calculate current foot tip velocity
 			J = LegJacobian(joint_pos[LegIndexToRange(i)], i)
 			cur_foot_vel_i = J * joint_vel[LegIndexToRange(i)]
@@ -53,7 +66,7 @@ function mpcControlWoofer!(torques::Vector{T}, x_est::Vector{T}, t::T, joint_pos
 		constructFootHistory!(t, param)
 		solveFootForces!(param)
 
-		@show (param.x_des - x_est)[7:9]
+		# @show (param.x_des - x_est)[7:9]
 
 		param.last_t = t
 	end

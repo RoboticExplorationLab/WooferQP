@@ -1,12 +1,10 @@
-function generateFootTrajectory(v_b::Vector, t0::T, tf::T, i::Int, param::ControllerParams) where {T<:Number}
+function generateFootTrajectory(foot_loc_cur::Vector, v_b::Vector, t0::T, tf::T, i::Int, param::ControllerParams) where {T<:Number}
 	#=
 	Generate a body relative trajectory for the ith foot via spline interpolation
 	This function is called when the phase is switched to a no contact phase
 
 	Updated foot location taken from param.param.next_foot_loc
 	=#
-
-	foot_loc_cur = param.cur_foot_loc[LegIndexToRange(i)]
 
 	# eps = 0.05
 	eps = 0.0

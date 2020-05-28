@@ -1,9 +1,13 @@
-function getPhase(t::AbstractFloat, param::ControllerParams)
+function getPhase(t::AbstractFloat, param::ControllerParams; return_time::Bool=false)
 	phase_time = t % param.gait.phase_length
 
 	for i in 1:param.gait.num_phases
 		if phase_time < sum(param.gait.phase_times[1:i])
-			return i
+			if return_time
+				return (i, phase_time - sum(param.gait.phase_times[1:i-1]))
+			else
+				return i
+			end
 		end
 	end
 end

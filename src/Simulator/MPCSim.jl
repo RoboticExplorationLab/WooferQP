@@ -66,7 +66,7 @@ function simulate()
 
 	# desired position
 	# x_des = [0.0, 0.0, 0.32, zeros(9)...]
-	xy_vel = [0.0, 0]
+	xy_vel = [0.15, 0]
 	x_des = [0.0, 0.0, 0.28, zeros(3)..., xy_vel..., zeros(4)...]
 	# true state information
 	x = zeros(13)
@@ -84,16 +84,17 @@ function simulate()
 
 	# state penalty in QP
 	q = [1e4, 1e4, 5e4, 4e3, 4e3, 1e2, 1e4, 1e4, 1e2, 1, 1, 1e2]
+	# q = [1e-4, 1e-4, 5e4, 1e4, 1e4, 1e2, 1e4, 1e4, 1e2, 1e2, 1e2, 5e3]
 	# control penalty in QP
 	r = [1e-2, 1e-2, 1e-4, 1e-2, 1e-2, 1e-4, 1e-2, 1e-2, 1e-4, 1e-2, 1e-2, 1e-4]
 
 	optimizer = OptimizerParams(planning_dt, N, q, r)
 	# gait = createStandingGait()
-	gait = createTrotGait()
+	gait = createTrotGait(stance_time=0.6, swing_time=0.2)
 	swing = SwingLegParams(-0.20, 100, 1)
 
-	use_lqr = false
-	vel_ctrl = false
+	use_lqr = false # use lqr in cost to go
+	vel_ctrl = false # integrate positions, interpolate velocities
 	param = ControllerParams(N, mpc_update, x_des, use_lqr, vel_ctrl, optimizer, gait, swing)
 
     # Loop until the user closes the window
