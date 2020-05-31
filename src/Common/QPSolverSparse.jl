@@ -3,53 +3,34 @@ This file turns the discrete MPC problem into a quadratic problem via a sparse
 formulation.
 """
 
+using ForwardDiff
+
 function mass(contacts)
-	return woofer.inertial.sprung_mass + sum([woofer.inertial.lower_link_mass*(1-contacts[i]) for i=1:4])
+	return woofer.inertial.sprung_mass + sum([2*woofer.inertial.lower_link_mass*(1-contacts[i]) for i=1:4])
 end
 
-function NonLinearContinuousDynamics(x, u, r, J, contacts)
-	x_dot = zeros(12)
+function NonLinearContinuousDynamics(x, u, r, contacts)
+	J = woofer.inertial.body_inertia
 
-	x_dot[1:3] = x[7:9]
-	x_dot[4:6] = 0.5*V()*L_q(ThreeParamToQuat(x[4:6]))*VecToQuat(x[10:12])
-	x_dot[7:9] = 1/mass(contacts) * sum(reshape(u, 3, 4), dims=2) + [0; 0; -9.81]
+	x_d_1_3 = x[7:9]
+	x_d_4_6 = 0.5*V()*L_q(ThreeParamToQuat(x[4:6]))*VecToQuat(x[10:12])
+	x_d_7_9 = 1/mass(contacts) * sum(reshape(u, 3, 4), dims=2) + [0; 0; -9.81]
 
 	torque_sum = zeros(3)
 	for i=1:4
 		torque_sum += SkewSymmetricMatrix(r[LegIndexToRange(i)])*QuatToRotMatrix(ThreeParamToQuat(x[4:6]))'*u[LegIndexToRange(i)]
 	end
-	x_dot[10:12] = inv(J)*(-SkewSymmetricMatrix(x[10:12])*J*x[10:12] + torque_sum)
+	x_d_10_12 = inv(J)*(-SkewSymmetricMatrix(x[10:12])*J*x[10:12] + torque_sum)
 
-	return x_dot
+	return [x_d_1_3..., x_d_4_6..., x_d_7_9..., x_d_10_12...]
 end
 
-function LinearizedContinuousDynamicsA(x, J)
-    x_ϕ = x[4:6]
-    x_w = x[10:12]
-    dvdv = Diagonal(ones(3))
-    dphidphi = 0.5 * V() * R_q(ThreeParamToQuat(x_w)) * [-x_ϕ' / sqrt(abs(1 - x_ϕ' * x_ϕ)); Diagonal(ones(3))]
-    dphidw = 0.5 * V() * L_q(ThreeParamToQuat(x_ϕ)) * V()'
-    dwdw = -inv(J) * (SkewSymmetricMatrix(x_w) * J - SkewSymmetricMatrix(Vector(J * x_w)))
-
-    r1 = [zeros(3, 6) dvdv zeros(3, 3)]
-    r2 = [zeros(3, 3) dphidphi zeros(3, 3) dphidw]
-    r3 = zeros(3, 12)
-    r4 = [zeros(3,9) dwdw]
-    R = [r1; r2; r3; r4]
-    return R
+function LinearizedContinuousDynamicsA(x, u, r, contacts)
+	return ForwardDiff.jacobian((x_var)->NonLinearContinuousDynamics(x_var, u, r, contacts), x)
 end
 
-function LinearizedContinuousDynamicsB(x, r, contacts, J)
-	b1 = zeros(3, 12)
-	b2 = zeros(3, 12)
-	b3 = 1/mass(contacts)*repeat(Diagonal(ones(3)), 1, 4)
-
-	b4 = zeros(3,12)
-	for i=1:4
-		b4[:, LegIndexToRange(i)] = inv(J)*contacts[i]*SkewSymmetricMatrix(r[LegIndexToRange(i)])*QuatToRotMatrix(ThreeParamToQuat(x[4:6]))'
-	end
-
-	return [b1; b2; b3; b4]
+function LinearizedContinuousDynamicsB(x, u, r, contacts)
+	return ForwardDiff.jacobian((u_var)->NonLinearContinuousDynamics(x, u_var, r, contacts), u)
 end
 
 function generateReferenceTrajectory!(x_curr::Vector{T}, param::ControllerParams) where {T<:Number}
@@ -85,9 +66,9 @@ function solveFootForces!(param::ControllerParams) where {T<:Number}
 	param.optimizer.x_ref_reshaped .= reshape(param.x_ref, (N+1)*n, 1)[:]
 
 	for i=0:N-1
-		A_c_i = LinearizedContinuousDynamicsA(param.x_ref[select12(i)], woofer.inertial.body_inertia)
-		B_c_i = LinearizedContinuousDynamicsB(param.x_ref[select12(i)], param.foot_locs[:, i+1], param.contacts[:, i+1], woofer.inertial.body_inertia)
-		d_c_i = NonLinearContinuousDynamics(param.x_ref[select12(i)], param.optimizer.u_ref[select12(i)], param.foot_locs[:, i+1], woofer.inertial.body_inertia, param.contacts[:, i+1])
+		A_c_i = LinearizedContinuousDynamicsA(param.x_ref[select12(i)], param.optimizer.u_ref[select12(i)], param.foot_locs[:, i+1], param.contacts[:, i+1])
+		B_c_i = LinearizedContinuousDynamicsB(param.x_ref[select12(i)], param.optimizer.u_ref[select12(i)], param.foot_locs[:, i+1], param.contacts[:, i+1])
+		d_c_i = NonLinearContinuousDynamics(param.x_ref[select12(i)], param.optimizer.u_ref[select12(i)], param.foot_locs[:, i+1], param.contacts[:, i+1])
 
 		# Euler Discretization
 		param.optimizer.A_d[i+1] .= Array(I + A_c_i*dt)
@@ -106,7 +87,9 @@ function solveFootForces!(param::ControllerParams) where {T<:Number}
 
 	solve!(param.optimizer.model)
 
-	param.forces .= value.(param.optimizer.model, param.optimizer.u)[1:12]
+	println("Projected z value at tail: ", (value.(param.optimizer.model, param.optimizer.x)[select12(param.N)])[3])
+
+	param.forces .= value.(param.optimizer.model, param.optimizer.u)[select12(0)]
 end
 
 function select12(i)
