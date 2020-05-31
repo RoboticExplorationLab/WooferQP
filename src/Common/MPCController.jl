@@ -64,7 +64,7 @@ function mpcControlWoofer!(torques::Vector{T}, x_est::Vector{T}, t::T, joint_pos
 		constructFootHistory!(t, param)
 		solveFootForces!(param)
 
-		# @show (param.x_des - x_est)[7:9]
+		# @show (param.x_des - x_est)[3]
 
 		param.last_t = t
 	end

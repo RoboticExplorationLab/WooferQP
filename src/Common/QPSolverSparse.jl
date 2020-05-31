@@ -14,11 +14,11 @@ function NonLinearContinuousDynamics(x, u, r, contacts)
 
 	x_d_1_3 = x[7:9]
 	x_d_4_6 = 0.5*V()*L_q(ThreeParamToQuat(x[4:6]))*VecToQuat(x[10:12])
-	x_d_7_9 = 1/mass(contacts) * sum(reshape(u, 3, 4), dims=2) + [0; 0; -9.81]
+	x_d_7_9 = 1/mass(contacts) * sum(repeat(contacts', 3, 1) .* reshape(u, 3, 4), dims=2) + [0; 0; -9.81]
 
 	torque_sum = zeros(3)
 	for i=1:4
-		torque_sum += SkewSymmetricMatrix(r[LegIndexToRange(i)])*QuatToRotMatrix(ThreeParamToQuat(x[4:6]))'*u[LegIndexToRange(i)]
+		torque_sum += contacts[i]*SkewSymmetricMatrix(r[LegIndexToRange(i)])*QuatToRotMatrix(ThreeParamToQuat(x[4:6]))'*u[LegIndexToRange(i)]
 	end
 	x_d_10_12 = inv(J)*(-SkewSymmetricMatrix(x[10:12])*J*x[10:12] + torque_sum)
 
@@ -86,9 +86,7 @@ function solveFootForces!(param::ControllerParams) where {T<:Number}
 	end
 
 	solve!(param.optimizer.model)
-
-	println("Projected z value at tail: ", (value.(param.optimizer.model, param.optimizer.x)[select12(param.N)])[3])
-
+	
 	param.forces .= value.(param.optimizer.model, param.optimizer.u)[select12(0)]
 end
 

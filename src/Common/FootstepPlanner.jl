@@ -8,7 +8,7 @@ function nextFootstepLocation(v_b::Vector{T}, ω_z::T, cur_phase::Int, i::Int, p
 	next_phase = nextPhase(cur_phase, param)
 
 	# TODO: use rotation matrix instead of ω cross term
-	next_foot_loc = param.nom_foot_loc[LegIndexToRange(i)] + 
+	next_foot_loc = param.nom_foot_loc[LegIndexToRange(i)] +
 						param.gait.alpha*param.gait.phase_times[next_phase]*xy_select*v_b +
 						param.gait.beta*param.gait.phase_times[next_phase]*SkewSymmetricMatrix(ω)*param.cur_foot_loc[LegIndexToRange(i)]
 
@@ -26,15 +26,7 @@ function constructFootHistory!(t::T, param::ControllerParams) where {T<:Number}
 	t_i = t + param.optimizer.dt
 
 	prev_phase = getPhase(t, param)
-
-	next_foot_loc = zeros(3)
-
-	prev_foot_locs = zeros(12)
-
-	r_dot = zeros(3)
-
-	prev_foot_locs .= param.cur_foot_loc
-
+	prev_foot_locs = param.cur_foot_loc
 
 	# current contact is first column of matrix
 	param.contacts[:,1] .= param.gait.contact_phases[:, prev_phase]
@@ -56,7 +48,6 @@ function constructFootHistory!(t::T, param::ControllerParams) where {T<:Number}
 			if param.gait.contact_phases[j, prev_phase] == 1
 				if param.gait.contact_phases[j, next_phase] == 0
 					# next foot placement must be planned prior to foot being released
-					# next_foot_phase = nextPhase(next_phase, param)
 					param.planner_foot_loc[LegIndexToRange(j)] .= nextFootstepLocation(v_b_i, ω_b_i[3], next_phase, j, param)
 					prev_foot_locs[LegIndexToRange(j)] .= param.planner_foot_loc[LegIndexToRange(j)]
 				else
