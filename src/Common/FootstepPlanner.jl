@@ -7,9 +7,11 @@ function nextFootstepLocation(v_b::Vector{T}, ω_z::T, cur_phase::Int, i::Int, p
 
 	next_phase = nextPhase(cur_phase, param)
 
+	k = 0.0
+
 	# TODO: use rotation matrix instead of ω cross term
 	next_foot_loc = param.nom_foot_loc[LegIndexToRange(i)] +
-						param.gait.alpha*param.gait.phase_times[next_phase]*xy_select*v_b +
+						param.gait.alpha*param.gait.phase_times[next_phase]*xy_select*v_b + k*(v_b - xy_select*param.x_des[7:9])
 						param.gait.beta*param.gait.phase_times[next_phase]*SkewSymmetricMatrix(ω)*param.cur_foot_loc[LegIndexToRange(i)]
 
 	return next_foot_loc

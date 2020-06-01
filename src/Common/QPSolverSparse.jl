@@ -14,7 +14,7 @@ function NonLinearContinuousDynamics(x, u, r, contacts)
 
 	x_d_1_3 = x[7:9]
 	x_d_4_6 = 0.5*V()*L_q(ThreeParamToQuat(x[4:6]))*VecToQuat(x[10:12])
-	x_d_7_9 = 1/mass(contacts) * sum(repeat(contacts', 3, 1) .* reshape(u, 3, 4), dims=2) + [0; 0; -9.81]
+	x_d_7_9 = 1/woofer.inertial.sprung_mass * sum(repeat(contacts', 3, 1) .* reshape(u, 3, 4), dims=2) + [0; 0; -9.81]
 
 	torque_sum = zeros(3)
 	for i=1:4
@@ -86,7 +86,7 @@ function solveFootForces!(param::ControllerParams) where {T<:Number}
 	end
 
 	solve!(param.optimizer.model)
-	
+
 	param.forces .= value.(param.optimizer.model, param.optimizer.u)[select12(0)]
 end
 

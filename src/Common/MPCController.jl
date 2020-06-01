@@ -30,27 +30,38 @@ function mpcControlWoofer!(torques::Vector{T}, x_est::Vector{T}, t::T, joint_pos
 				# make sure MPC accounts for this next foot location
 				param.planner_foot_loc[LegIndexToRange(i)] .= param.next_foot_loc[LegIndexToRange(i)]
 
-				generateFootTrajectory(param.cur_foot_loc[LegIndexToRange(i)], x_est[7:9], t, t+param.gait.phase_times[param.cur_phase], i, param)
-				param.trajectory_foot_loc[LegIndexToRange(i)] = param.cur_foot_loc[LegIndexToRange(i)]
+				generateFootTrajectory(	-x_est[7:9],
+										-x_est[7:9],
+										t,
+										t+param.gait.phase_times[param.cur_phase],
+										i,
+										param,
+										regen_z=true)
 				param.last_replan_t = t
 			end
 		end
 
 		# actually calculate swing torques
 		if param.gait.contact_phases[i, param.cur_phase] == 0
+			# calculate current foot tip velocity
+			J = LegJacobian(joint_pos[LegIndexToRange(i)], i)
+			cur_foot_vel_i = J * joint_vel[LegIndexToRange(i)]
+
 			if (t - param.last_replan_t) > param.replan_update
 				param.next_foot_loc[LegIndexToRange(i)] = nextFootstepLocation(v_b, ω[3], param.cur_phase, i, param)
 
 				# make sure MPC accounts for this next foot location
 				param.planner_foot_loc[LegIndexToRange(i)] .= param.next_foot_loc[LegIndexToRange(i)]
 
-				generateFootTrajectory(param.trajectory_foot_loc[LegIndexToRange(i)], x_est[7:9], (t-param.cur_phase_time), (t-param.cur_phase_time)+param.gait.phase_times[param.cur_phase], i, param)
+				generateFootTrajectory( cur_foot_vel_i,
+										-x_est[7:9],
+										t,
+										(t-param.cur_phase_time)+param.gait.phase_times[param.cur_phase],
+										i,
+										param,
+										regen_z=false)
 				param.last_replan_t = t
 			end
-
-			# calculate current foot tip velocity
-			J = LegJacobian(joint_pos[LegIndexToRange(i)], i)
-			cur_foot_vel_i = J * joint_vel[LegIndexToRange(i)]
 
 			swing_torque_i = calcSwingTorques(cur_foot_vel_i, joint_pos[LegIndexToRange(i)], t, i, param)
 			param.swing_torques[LegIndexToRange(i)] .= swing_torque_i
@@ -64,7 +75,7 @@ function mpcControlWoofer!(torques::Vector{T}, x_est::Vector{T}, t::T, joint_pos
 		constructFootHistory!(t, param)
 		solveFootForces!(param)
 
-		# @show (param.x_des - x_est)[3]
+		println("X Velocity: ", x_est[7])
 
 		param.last_t = t
 	end
