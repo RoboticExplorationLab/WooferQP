@@ -47,7 +47,7 @@ struct OptimizerParams
 		d_d_param = [Parameter(()->d_d[i], model) for i=1:N]
 
 		# constants
-		μ = 0.7
+		μ = 1.5
 		min_vert_force = 1
 		max_vert_force = 133
 

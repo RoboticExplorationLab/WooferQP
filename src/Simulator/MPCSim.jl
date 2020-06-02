@@ -65,7 +65,7 @@ function simulate()
 	# Allocate everything once
 
 	# desired position
-	xy_vel = [0.15, 0.0]
+	xy_vel = [4.0, 0.0]
 	ω = 0.0
 	x_des = [0.0, 0.0, 0.28, zeros(3)..., xy_vel..., zeros(3)..., ω]
 	# true state information
@@ -84,13 +84,14 @@ function simulate()
 
 	# state penalty in QP
 	# q = [1e4, 1e4, 5e4, 4e3, 4e3, 1e3, 1e4, 1e4, 1e2, 1e2, 1e2, 1e3]
-	q = [0, 0, 5e4, 1e5, 1e5, 0, 1e4, 1e4, 1e2, 1e2, 1e2, 1e5]
+	q = [0, 0, 5e4, 1e3, 1e5, 0, 1e4, 1e4, 1e2, 1e2, 1e2, 1e4]
 	# control penalty in QP
 	r = [1e-2, 1e-2, 1e-4, 1e-2, 1e-2, 1e-4, 1e-2, 1e-2, 1e-4, 1e-2, 1e-2, 1e-4]
 
 	optimizer = OptimizerParams(planning_dt, N, q, r)
 	# gait = createStandingGait()
-	gait = createTrotGait(stance_time=0.45, swing_time=0.15)
+	# gait = createTrotGait(stance_time=0.15, swing_time=0.15)
+	gait = createBoundGait(stance_time=0.2, flight_time=0.1)
 	swing = SwingLegParams(-0.20, 100, 1)
 
 	use_lqr = false # use lqr in cost to go

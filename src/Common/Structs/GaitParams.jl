@@ -32,3 +32,14 @@ end
 function createStandingGait()
 	return GaitParams(1, [1;1;1;1], [1.0])
 end
+
+function createBoundGait(;stance_time=0.2, flight_time=0.1)
+	num_phases = 2
+	contact_phases = [	1 0;
+						1 0;
+						1 0;
+						1 0	]
+	phase_times = [stance_time, flight_time]
+
+	return GaitParams(num_phases, contact_phases, phase_times)
+end

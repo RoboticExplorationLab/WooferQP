@@ -54,7 +54,7 @@ mutable struct ControllerParams
 		cur_phase_time = 0.0
 
 		last_replan_t = 0.0
-		replan_update = 0.005
+		replan_update = 0.01
 
 		cur_foot_loc = zeros(12)
 		active_feet = zeros(Int64, 4)

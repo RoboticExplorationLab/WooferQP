@@ -8,14 +8,11 @@ function generateFootTrajectory(v0::Vector, v1::Vector, t0::T, tf::T, i::Int, pa
 
 	foot_loc_cur = param.cur_foot_loc[LegIndexToRange(i)]
 
-	# eps = 0.05
-	eps = 0.0
-
 	# generate cubic spline in x,y to get body relative foot trajectory
 	A = [t0^3 	t0^2 	t0 	1;
 		 tf^3 	tf^2 	tf 	1;
-		 3*t0^2 2*t0^2 	1 	0;
-		 3*tf^2 2*tf^2 	1 	0]
+		 3*t0^2 2*t0 	1 	0;
+		 3*tf^2 2*tf 	1 	0]
 
 	# TODO: add in omega cross term here? probably doesn't matter...
 	b_x = [foot_loc_cur[1], param.next_foot_loc[3*(i-1)+1], v0[1], v1[1]]
@@ -29,9 +26,9 @@ function generateFootTrajectory(v0::Vector, v1::Vector, t0::T, tf::T, i::Int, pa
 		A_z =  [t0^3				t0^2				t0				1;
 				tf^3				tf^2				tf				1;
 				(0.5*(tf+t0))^3		(0.5*(tf+t0))^2		(0.5*(tf+t0))	1;
-				3*tf^2 				2*tf^2 				1 				0]
+				3*tf^2 				2*tf				1 				0]
 
-		b_z = [foot_loc_cur[3], param.next_foot_loc[3*(i-1)+3], param.swing.step_height, -eps]
+		b_z = [foot_loc_cur[3], param.next_foot_loc[3*(i-1)+3], param.swing.step_height, 0.0]
 		param.swing.foot_trajectories[9:12, i] .= A_z\b_z
 	end
 end
@@ -44,7 +41,7 @@ function calcSwingTorques(cur_vel::Vector{T}, α::Vector{T}, t::T, i::Integer, p
 	=#
 
 	t_p = [t^3, t^2, t, 1]
-	t_v = [3*t^2, 2*t^2, 1, 0]
+	t_v = [3*t^2, 2*t, 1, 0]
 
 	r_des = [dot(param.swing.foot_trajectories[1:4,i], t_p),
 			 dot(param.swing.foot_trajectories[5:8,i], t_p),
