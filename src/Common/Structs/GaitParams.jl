@@ -33,13 +33,35 @@ function createStandingGait()
 	return GaitParams(1, [1;1;1;1], [1.0])
 end
 
-function createBoundGait(;stance_time=0.2, flight_time=0.1)
+function createPronkGait(;stance_time=0.2, flight_time=0.1)
 	num_phases = 2
 	contact_phases = [	1 0;
 						1 0;
 						1 0;
 						1 0	]
 	phase_times = [stance_time, flight_time]
+
+	return GaitParams(num_phases, contact_phases, phase_times)
+end
+
+function createPaceGait(;stance_time=0.6, swing_time=0.2)
+	num_phases = 4
+	contact_phases = [	1 1 1 0;
+						1 0 1 1;
+						1 1 1 0;
+						1 0 1 1	]
+	phase_times = [stance_time, swing_time, stance_time, swing_time]
+
+	return GaitParams(num_phases, contact_phases, phase_times)
+end
+
+function createBoundGait(;front_time=0.2, back_time=0.2, stance_time=0.1)
+	num_phases = 4
+	contact_phases = [	1 1 1 0;
+						1 1 1 0;
+						1 0 1 1;
+						1 0 1 1	]
+	phase_times = [stance_time, front_time, stance_time, back_time]
 
 	return GaitParams(num_phases, contact_phases, phase_times)
 end

@@ -42,6 +42,7 @@ mutable struct ControllerParams
 								x_des::Vector{Float64},
 								use_lqr::Bool,
 								vel_ctrl::Bool,
+								nom_foot_loc::Vector{Float64},
 								optimizer::OptimizerParams,
 								gait::GaitParams,
 								swing::SwingLegParams	)
@@ -63,8 +64,6 @@ mutable struct ControllerParams
 		trajectory_foot_loc = zeros(12)
 		planner_foot_loc = zeros(12)
 		next_foot_loc = zeros(12)
-
-		nom_foot_loc = ForwardKinematicsAll(zeros(12))
 
 		# ensures that foot forces are calculated at start
 		last_t = -1
