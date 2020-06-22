@@ -41,7 +41,6 @@ contacts
 
 forces = zeros(12)
 
-# @time solveFootForces!(forces, x0, x_ref, contacts, foot_locs, mpc_config, WOOFER_CONFIG)
 @time solveFootForces!(forces, x_ref, contacts, foot_locs, mpc_config, false)
 
 forces
