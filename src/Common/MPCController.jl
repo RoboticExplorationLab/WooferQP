@@ -1,4 +1,4 @@
-include("Structs/OptimizerParams.jl")
+include("Structs/QPParams.jl")
 include("Structs/SwingLegParams.jl")
 include("Structs/GaitParams.jl")
 include("Structs/ControllerParams.jl")
