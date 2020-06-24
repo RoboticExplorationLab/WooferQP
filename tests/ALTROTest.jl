@@ -4,7 +4,7 @@ using LinearAlgebra
 using Rotations
 
 include("../src/Common/Config.jl")
-include("../src/Common/QPSolverSparse.jl")
+include("../src/Common/ALTROSolver.jl")
 include("../src/Common/Dynamics.jl")
 include("../src/Common/Gait.jl")
 include("../src/Common/FootstepPlanner.jl")
