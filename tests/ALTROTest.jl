@@ -4,7 +4,7 @@ using LinearAlgebra
 using Rotations
 
 include("../src/Common/Config.jl")
-include("../src/Common/QPSolverSparse.jl")
+include("../src/Common/ALTROSolver.jl")
 include("../src/Common/Dynamics.jl")
 include("../src/Common/Gait.jl")
 include("../src/Common/FootstepPlanner.jl")
@@ -41,6 +41,7 @@ contacts
 
 forces = zeros(12)
 
+# @time solveFootForces!(forces, x0, x_ref, contacts, foot_locs, mpc_config, WOOFER_CONFIG)
 @time solveFootForces!(forces, x_ref, contacts, foot_locs, mpc_config, false)
 
 forces
