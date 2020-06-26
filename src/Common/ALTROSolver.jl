@@ -33,6 +33,22 @@ function LinearizedContinuousDynamicsB(x, u, r, contacts)
 	return ForwardDiff.jacobian((u_var)->NonLinearContinuousDynamics(x, u_var, r, contacts), u)
 end
 
+function TrajectoryOptimization.dynamics(model, x, u, t)
+	k = searchsortedfirst(model.times, t)
+	if model.times[k] != t
+		k -= 1
+	end
+
+	# A = LinearizedContinuousDynamicsA(model.x_ref[k], model.u_ref[k], model.foot_locs[k], model.contacts[k])
+	# B = LinearizedContinuousDynamicsB(model.x_ref[k], model.u_ref[k], model.foot_locs[k], model.contacts[k])
+	# d = NonLinearContinuousDynamics(model.x_ref[k], model.u_ref[k], model.foot_locs[k], model.contacts[k])
+	# x_dot = A*(x - model.x_ref[k]) + B*(u - model.u_ref[k]) + d 
+
+	x_dot = NonLinearContinuousDynamics(x, u, model.foot_locs[k], model.contacts[k])
+
+	return x_dot
+end
+
 function generateReferenceTrajectory!(x_curr::Vector{T}, param::ControllerParams) where {T<:Number}
 	# TODO: integrate the x,y,ψ position from the reference
 	α = collect(range(0, 1, length=param.N+1))
@@ -58,32 +74,18 @@ function solveFootForces!(param::ControllerParams) where {T<:Number}
 	# x_ref: 12xN+1 matrix of state reference trajectory (where first column is x0)
 	# contacts: 4xN matrix of foot contacts over the planning horizon
 	# foot_locs: 12xN matrix of foot location in body frame over planning horizon
+	opt = param.optimizer
+
 	N = param.N
-	dt = param.optimizer.dt
+	dt = opt.dt
 	n = 12
 	m = 12
 
-	param.optimizer.x_ref_reshaped .= reshape(param.x_ref, (N+1)*n, 1)[:]
+	opt.model.x_ref .= reshape(param.x_ref, (N+1)*n, 1)[:]
+	opt.model.contacts .= param.contacts
+	opt.model.foot_locs .= param.foot_locs
 
-	for i=0:N-1
-		A_c_i = LinearizedContinuousDynamicsA(param.x_ref[select12(i)], param.optimizer.u_ref[select12(i)], param.foot_locs[:, i+1], param.contacts[:, i+1])
-		B_c_i = LinearizedContinuousDynamicsB(param.x_ref[select12(i)], param.optimizer.u_ref[select12(i)], param.foot_locs[:, i+1], param.contacts[:, i+1])
-		d_c_i = NonLinearContinuousDynamics(param.x_ref[select12(i)], param.optimizer.u_ref[select12(i)], param.foot_locs[:, i+1], param.contacts[:, i+1])
-
-		# Euler Discretization
-		param.optimizer.A_d[i+1] .= Array(I + A_c_i*dt)
-		param.optimizer.B_d[i+1] .= Array(B_c_i*dt)
-		param.optimizer.d_d[i+1] .= Array(d_c_i*dt + param.x_ref[select12(i)])
-
-		if param.use_lqr
-			param.optimizer.u_ref[select12(i)] .= pinv(param.optimizer.B_d[i+1])*((I - param.optimizer.A_d[i+1])*param.optimizer.x_ref_reshaped[select12(i)] - param.optimizer.d_d[i+1])
-		end
-	end
-
-	if param.use_lqr
-		V = dare(param.optimizer.A_d[N], param.optimizer.B_d[N], param.optimizer.Q[1:n, 1:n], param.optimizer.R[1:m, 1:m])
-		param.optimizer.Q[(N*n+1):((N+1)*n), (N*n+1):((N+1)*n)] .= V
-	end
+	opt.problem = Problem()
 
 	solve!(param.optimizer.model)
 
