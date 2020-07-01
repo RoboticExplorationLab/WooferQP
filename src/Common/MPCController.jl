@@ -1,8 +1,11 @@
-include("Structs/QPParams.jl")
+# include("Structs/QPParams.jl")
+include("Structs/ALTROParams.jl")
+include("Structs/LinearizedFrictionConstraint.jl")
 include("Structs/SwingLegParams.jl")
 include("Structs/GaitParams.jl")
 include("Structs/ControllerParams.jl")
-include("QPSolverSparse.jl")
+# include("QPSolverSparse.jl")
+include("ALTROSolver.jl")
 include("SwingLegController.jl")
 include("Gait.jl")
 include("FootstepPlanner.jl")
@@ -73,7 +76,7 @@ function mpcControlWoofer!(torques::Vector{T}, x_est::Vector{T}, t::T, joint_pos
 		# update MPC forces
 		generateReferenceTrajectory!(x_est, param)
 		constructFootHistory!(t, param)
-		solveFootForces!(param)
+		solveFootForces!(x_est, param)
 
 		println("X Velocity: ", x_est[7])
 

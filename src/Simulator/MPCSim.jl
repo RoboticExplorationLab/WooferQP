@@ -2,6 +2,7 @@ using LinearAlgebra
 using Parametron
 using OSQP
 using StaticArrays
+using TrajectoryOptimization
 using DataStructures
 
 include("XMLParser.jl")
@@ -89,7 +90,7 @@ function simulate()
 	# control penalty in QP
 	r = [1e-2, 1e-2, 1e-4, 1e-2, 1e-2, 1e-4, 1e-2, 1e-2, 1e-4, 1e-2, 1e-2, 1e-4]
 
-	optimizer = OptimizerParams(planning_dt, N, q, r)
+	optimizer = OptimizerParams(planning_dt, N, q, r, x_des)
 
 	nom_foot_loc = ForwardKinematicsAll(zeros(12))
 	offset = [1 -1 1 -1]

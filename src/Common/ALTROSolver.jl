@@ -33,18 +33,18 @@ function LinearizedContinuousDynamicsB(x, u, r, contacts)
 	return ForwardDiff.jacobian((u_var)->NonLinearContinuousDynamics(x, u_var, r, contacts), u)
 end
 
-function TrajectoryOptimization.dynamics(model, x, u, t)
+function TrajectoryOptimization.dynamics(model::Quadruped, x, u, t)
 	k = searchsortedfirst(model.times, t)
 	if model.times[k] != t
 		k -= 1
 	end
 
-	# A = LinearizedContinuousDynamicsA(model.x_ref[k], model.u_ref[k], model.foot_locs[k], model.contacts[k])
-	# B = LinearizedContinuousDynamicsB(model.x_ref[k], model.u_ref[k], model.foot_locs[k], model.contacts[k])
-	# d = NonLinearContinuousDynamics(model.x_ref[k], model.u_ref[k], model.foot_locs[k], model.contacts[k])
-	# x_dot = A*(x - model.x_ref[k]) + B*(u - model.u_ref[k]) + d 
+	A = LinearizedContinuousDynamicsA(model.x_ref[k], model.u_ref[k], model.foot_locs[k], model.contacts[k])
+	B = LinearizedContinuousDynamicsB(model.x_ref[k], model.u_ref[k], model.foot_locs[k], model.contacts[k])
+	d = NonLinearContinuousDynamics(model.x_ref[k], model.u_ref[k], model.foot_locs[k], model.contacts[k])
+	x_dot = A*(x - model.x_ref[k]) + B*(u - model.u_ref[k]) + d
 
-	x_dot = NonLinearContinuousDynamics(x, u, model.foot_locs[k], model.contacts[k])
+	# x_dot = NonLinearContinuousDynamics(x, u, model.foot_locs[k], model.contacts[k])
 
 	return x_dot
 end
@@ -70,26 +70,32 @@ function generateReferenceTrajectory!(x_curr::Vector{T}, param::ControllerParams
 	end
 end
 
-function solveFootForces!(param::ControllerParams) where {T<:Number}
+function solveFootForces!(x_curr::AbstractVector, param::ControllerParams) where {T<:Number}
 	# x_ref: 12xN+1 matrix of state reference trajectory (where first column is x0)
-	# contacts: 4xN matrix of foot contacts over the planning horizon
-	# foot_locs: 12xN matrix of foot location in body frame over planning horizon
+	# contacts: 4xN+1 matrix of foot contacts over the planning horizon
+	# foot_locs: 12xN+1 matrix of foot location in body frame over planning horizon
 	opt = param.optimizer
 
-	N = param.N
-	dt = opt.dt
+	tf = param.N * opt.dt
 	n = 12
 	m = 12
 
-	opt.model.x_ref .= reshape(param.x_ref, (N+1)*n, 1)[:]
-	opt.model.contacts .= param.contacts
-	opt.model.foot_locs .= param.foot_locs
+	# TODO: standardize between QP and ALTRO
+	opt.model.x_ref .= [param.x_ref[:, i] for i=1:(param.N+1)]
+	opt.model.u_ref .= [zeros(m) for i=1:(param.N+1)]
+	opt.model.contacts .= [param.contacts[:, i] for i=1:(param.N+1)]
+	opt.model.foot_locs .= [param.foot_locs[:, i] for i=1:(param.N+1)]
 
-	opt.problem = Problem()
+	problem = Problem(opt.model, opt.objective, param.x_des, tf, x0=x_curr, constraints=opt.constraints)
+	initial_states!(problem, opt.X0)
+	initial_controls!(problem, opt.U0)
+	solver = ALTROSolver(problem)
+	TrajectoryOptimization.solve!(solver)
 
-	solve!(param.optimizer.model)
+	opt.X0 = states(solver)
+	opt.U0 = controls(solver)
 
-	param.forces .= value.(param.optimizer.model, param.optimizer.u)[select12(0)]
+	param.forces .= opt.U0[1]
 end
 
 function select12(i)
