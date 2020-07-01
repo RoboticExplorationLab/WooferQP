@@ -62,8 +62,8 @@ mutable struct ControllerParams
 		# ensures that foot forces are calculated at start
 		last_t = -1
 
-		contacts = zeros(Int64, 4, N)
-		foot_locs = zeros(12, N)
+		contacts = zeros(Int64, 4, N+1)
+		foot_locs = zeros(12, N+1)
 
 		x_ref = zeros(12, N+1)
 

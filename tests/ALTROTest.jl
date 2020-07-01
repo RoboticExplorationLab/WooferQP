@@ -6,6 +6,7 @@ using OSQP
 
 include("../src/Common/Config.jl")
 include("../src/Common/Quaternions.jl")
+include("../src/Common/Structs/LinearizedFrictionConstraint.jl")
 include("../src/Common/Structs/ALTROParams.jl")
 include("../src/Common/Structs/SwingLegParams.jl")
 include("../src/Common/Structs/GaitParams.jl")
@@ -14,6 +15,7 @@ include("../src/Common/ALTROSolver.jl")
 include("../src/Common/SwingLegController.jl")
 include("../src/Common/Gait.jl")
 include("../src/Common/FootstepPlanner.jl")
+include("../src/Common/Dynamics.jl")
 
 dt = 0.05
 mpc_update = 0.001
@@ -30,7 +32,7 @@ vel_ctrl = false # integrate positions, interpolate velocities
 
 swing = SwingLegParams(-0.20, 100, 1)
 gait = createTrotGait(stance_time=0.15, swing_time=0.15)
-optimizer = OptimizerParams(woofer, dt, N, q, r, x_des)
+optimizer = OptimizerParams(dt, N, q, r, x_des)
 param = ControllerParams(N, mpc_update, x_des, use_lqr, vel_ctrl, zeros(12), optimizer, gait, swing)
 
 x_ref = zeros(12, N+1)
@@ -48,6 +50,6 @@ t = 0.0
 
 constructFootHistory!(t, param)
 
-solveFootForces!(param)
+solveFootForces!(x0, param)
 
 param.forces

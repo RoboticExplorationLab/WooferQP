@@ -37,7 +37,7 @@ function foot_history!(t::T, param::ControllerParams) where {T<:Number}
 	# cur_foot_loc is first column of matrix
 	param.foot_locs[:,1] .= param.cur_foot_loc
 
-	for i in 2:(param.N)
+	for i in 2:(param.N+1)
 		next_phase = getPhase(t_i, param)
 
 		param.contacts[:, i] .= param.gait.contact_phases[:, next_phase]

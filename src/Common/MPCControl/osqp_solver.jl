@@ -54,7 +54,11 @@ function reference_trajectory!(x_curr::Vector{T}, param::ControllerParams) where
 	end
 end
 
+<<<<<<< HEAD:src/Common/MPCControl/osqp_solver.jl
 function foot_forces!(param::ControllerParams) where {T<:Number}
+=======
+function solveFootForces!(x_curr::AbstractVector, param::ControllerParams) where {T<:Number}
+>>>>>>> ALTRO added:src/Common/QPSolverSparse.jl
 	# x_ref: 12xN+1 matrix of state reference trajectory (where first column is x0)
 	# contacts: 4xN+1 matrix of foot contacts over the planning horizon
 	# foot_locs: 12xN+1 matrix of foot location in body frame over planning horizon

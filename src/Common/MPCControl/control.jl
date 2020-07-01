@@ -1,4 +1,20 @@
+<<<<<<< HEAD:src/Common/MPCControl/control.jl
 function control!(torques::Vector{T}, x_est::Vector{T}, t::T, joint_pos::Vector{T}, joint_vel::Vector{T}, param::ControllerParams) where {T<:Number}
+=======
+# include("Structs/QPParams.jl")
+include("Structs/ALTROParams.jl")
+include("Structs/LinearizedFrictionConstraint.jl")
+include("Structs/SwingLegParams.jl")
+include("Structs/GaitParams.jl")
+include("Structs/ControllerParams.jl")
+# include("QPSolverSparse.jl")
+include("ALTROSolver.jl")
+include("SwingLegController.jl")
+include("Gait.jl")
+include("FootstepPlanner.jl")
+
+function mpcControlWoofer!(torques::Vector{T}, x_est::Vector{T}, t::T, joint_pos::Vector{T}, joint_vel::Vector{T}, param::ControllerParams) where {T<:Number}
+>>>>>>> ALTRO added:src/Common/MPCController.jl
 	# get current leg positions
 	param.cur_foot_loc = ForwardKinematicsAll(joint_pos)
 
@@ -62,9 +78,15 @@ function control!(torques::Vector{T}, x_est::Vector{T}, t::T, joint_pos::Vector{
 
 	if (t - param.last_t) >= param.mpc_update
 		# update MPC forces
+<<<<<<< HEAD:src/Common/MPCControl/control.jl
 		reference_trajectory!(x_est, param)
 		foot_history!(t, param)
 		foot_forces!(param)
+=======
+		generateReferenceTrajectory!(x_est, param)
+		constructFootHistory!(t, param)
+		solveFootForces!(x_est, param)
+>>>>>>> ALTRO added:src/Common/MPCController.jl
 
 		println("X Velocity: ", x_est[7])
 
