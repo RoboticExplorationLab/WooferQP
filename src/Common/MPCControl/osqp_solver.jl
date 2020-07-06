@@ -33,7 +33,7 @@ function LinearizedContinuousDynamicsB(x, u, r, contacts)
 	return ForwardDiff.jacobian((u_var)->NonLinearContinuousDynamics(x, u_var, r, contacts), u)
 end
 
-function generateReferenceTrajectory!(x_curr::Vector{T}, param::ControllerParams) where {T<:Number}
+function reference_trajectory!(x_curr::Vector{T}, param::ControllerParams) where {T<:Number}
 	# TODO: integrate the x,y,ψ position from the reference
 	α = collect(range(0, 1, length=param.N+1))
 	# interpolate everything but x, y position
@@ -54,7 +54,7 @@ function generateReferenceTrajectory!(x_curr::Vector{T}, param::ControllerParams
 	end
 end
 
-function solveFootForces!(param::ControllerParams) where {T<:Number}
+function foot_forces!(param::ControllerParams) where {T<:Number}
 	# x_ref: 12xN+1 matrix of state reference trajectory (where first column is x0)
 	# contacts: 4xN+1 matrix of foot contacts over the planning horizon
 	# foot_locs: 12xN+1 matrix of foot location in body frame over planning horizon

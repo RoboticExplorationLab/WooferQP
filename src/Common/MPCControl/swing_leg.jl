@@ -1,4 +1,4 @@
-function generateFootTrajectory(v0::Vector, v1::Vector, t0::T, tf::T, i::Int, param::ControllerParams; regen_z=true) where {T<:Number}
+function foot_trajectory(v0::Vector, v1::Vector, t0::T, tf::T, i::Int, param::ControllerParams; regen_z=true) where {T<:Number}
 	#=
 	Generate a body relative trajectory for the ith foot via spline interpolation
 	This function is called when the phase is switched to a no contact phase
@@ -33,7 +33,7 @@ function generateFootTrajectory(v0::Vector, v1::Vector, t0::T, tf::T, i::Int, pa
 	end
 end
 
-function calcSwingTorques(cur_vel::Vector{T}, α::Vector{T}, t::T, i::Integer, param::ControllerParams) where {T<:Number}
+function swing_torques(cur_vel::Vector{T}, α::Vector{T}, t::T, i::Integer, param::ControllerParams) where {T<:Number}
 	#=
 	PD cartesian controller around swing leg trajectory
 

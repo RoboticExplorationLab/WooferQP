@@ -1,13 +1,4 @@
-include("Structs/OptimizerParams.jl")
-include("Structs/SwingLegParams.jl")
-include("Structs/GaitParams.jl")
-include("Structs/ControllerParams.jl")
-include("QPSolverSparse.jl")
-include("SwingLegController.jl")
-include("Gait.jl")
-include("FootstepPlanner.jl")
-
-function mpcControlWoofer!(torques::Vector{T}, x_est::Vector{T}, t::T, joint_pos::Vector{T}, joint_vel::Vector{T}, param::ControllerParams) where {T<:Number}
+function control!(torques::Vector{T}, x_est::Vector{T}, t::T, joint_pos::Vector{T}, joint_vel::Vector{T}, param::ControllerParams) where {T<:Number}
 	# get current leg positions
 	param.cur_foot_loc = ForwardKinematicsAll(joint_pos)
 
@@ -25,12 +16,12 @@ function mpcControlWoofer!(torques::Vector{T}, x_est::Vector{T}, t::T, joint_pos
 		# calculate footstep and generate trajectory (stored in swing params) if needed
 		if param.gait.contact_phases[i, param.prev_phase] == 1
 			if param.gait.contact_phases[i, param.cur_phase] == 0
-				param.next_foot_loc[LegIndexToRange(i)] = nextFootstepLocation(v_b, ω[3], param.cur_phase, i, param)
+				param.next_foot_loc[LegIndexToRange(i)] = footstep_location(v_b, ω[3], param.cur_phase, i, param)
 
 				# make sure MPC accounts for this next foot location
 				param.planner_foot_loc[LegIndexToRange(i)] .= param.next_foot_loc[LegIndexToRange(i)]
 
-				generateFootTrajectory(	-x_est[7:9],
+				foot_trajectory(		-x_est[7:9],
 										-x_est[7:9],
 										t,
 										t+param.gait.phase_times[param.cur_phase],
@@ -48,12 +39,12 @@ function mpcControlWoofer!(torques::Vector{T}, x_est::Vector{T}, t::T, joint_pos
 			cur_foot_vel_i = J * joint_vel[LegIndexToRange(i)]
 
 			if (t - param.last_replan_t) > param.replan_update
-				param.next_foot_loc[LegIndexToRange(i)] = nextFootstepLocation(v_b, ω[3], param.cur_phase, i, param)
+				param.next_foot_loc[LegIndexToRange(i)] = footstep_location(v_b, ω[3], param.cur_phase, i, param)
 
 				# make sure MPC accounts for this next foot location
 				param.planner_foot_loc[LegIndexToRange(i)] .= param.next_foot_loc[LegIndexToRange(i)]
 
-				generateFootTrajectory( cur_foot_vel_i,
+				foot_trajectory( cur_foot_vel_i,
 										-x_est[7:9],
 										t,
 										(t-param.cur_phase_time)+param.gait.phase_times[param.cur_phase],
@@ -63,7 +54,7 @@ function mpcControlWoofer!(torques::Vector{T}, x_est::Vector{T}, t::T, joint_pos
 				param.last_replan_t = t
 			end
 
-			swing_torque_i = calcSwingTorques(cur_foot_vel_i, joint_pos[LegIndexToRange(i)], t, i, param)
+			swing_torque_i = swing_torques(cur_foot_vel_i, joint_pos[LegIndexToRange(i)], t, i, param)
 			param.swing_torques[LegIndexToRange(i)] .= swing_torque_i
 		end
 	end
@@ -71,9 +62,9 @@ function mpcControlWoofer!(torques::Vector{T}, x_est::Vector{T}, t::T, joint_pos
 
 	if (t - param.last_t) >= param.mpc_update
 		# update MPC forces
-		generateReferenceTrajectory!(x_est, param)
-		constructFootHistory!(t, param)
-		solveFootForces!(param)
+		reference_trajectory!(x_est, param)
+		foot_history!(t, param)
+		foot_forces!(param)
 
 		println("X Velocity: ", x_est[7])
 

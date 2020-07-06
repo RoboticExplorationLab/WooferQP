@@ -1,3 +1,14 @@
+module QuadrupedDynamics
+
+export
+    ForwardKinematics,
+    ForwardKinematicsAll,
+    ForwardHipRelativeKinematics,
+    LegJacobian,
+    Force2Torque
+
+
+
 using ForwardDiff
 using StaticArrays
 include("Config.jl")
@@ -99,4 +110,6 @@ function SkewSymmetricMatrix!(A::Matrix{T}, a::Vector{T}) where {T<:Real}
     A[2, 3] = -a[1]
     A[3, 1] = -a[2]
     A[3, 2] = a[1]
+end
+
 end

@@ -5,11 +5,13 @@ using StaticArrays
 using DataStructures
 
 include("XMLParser.jl")
-include("../Common/Dynamics.jl")
-include("../Common/Config.jl")
-# include("../Common/Rotations.jl")
-include("../Common/MPCController.jl")
+include("../Common/MPCControl/MPCControl.jl")
+include("../Common/QuadrupedDynamics.jl")
+include("../Common/Utilities.jl")
 include("../Common/Quaternions.jl")
+
+using .QuadrupedDynamics
+import .MPCControl
 
 function simulate()
 	woofer = WooferConfig("../Common/Woofer.yaml")
@@ -89,7 +91,7 @@ function simulate()
 	# control penalty in QP
 	r = [1e-2, 1e-2, 1e-4, 1e-2, 1e-2, 1e-4, 1e-2, 1e-2, 1e-4, 1e-2, 1e-2, 1e-4]
 
-	optimizer = OptimizerParams(planning_dt, N, q, r)
+	optimizer = MPCControl.OptimizerParams(planning_dt, N, q, r)
 
 	nom_foot_loc = ForwardKinematicsAll(zeros(12))
 	offset = [1 -1 1 -1]
@@ -101,14 +103,14 @@ function simulate()
 
 	# gait = createStandingGait()
 	# gait = createTrotGait(stance_time=0.15, swing_time=0.15)
-	gait = createPronkGait(stance_time=0.2, flight_time=0.1)
+	gait = MPCControl.createPronkGait(stance_time=0.2, flight_time=0.1)
 	# gait = createPaceGait(stance_time=0.1, swing_time=0.15)
 	# gait = createBoundGait(front_time=0.15, back_time=0.15, stance_time=0.05)
-	swing = SwingLegParams(-0.20, 100, 1)
+	swing = MPCControl.SwingLegParams(-0.20, 100, 1)
 
 	use_lqr = false # use lqr in cost to go
 	vel_ctrl = false # integrate positions, interpolate velocities
-	param = ControllerParams(N, mpc_update, x_des, use_lqr, vel_ctrl, nom_foot_loc, optimizer, gait, swing)
+	param = MPCControl.ControllerParams(N, mpc_update, x_des, use_lqr, vel_ctrl, nom_foot_loc, optimizer, gait, swing)
 
     # Loop until the user closes the window
     WooferSim.alignscale(s)
@@ -181,7 +183,7 @@ function simulate()
 	               joint_pos   .= s.d.sensordata[7:18]
 	               joint_vel   .= s.d.sensordata[19:30]
 
-				   mpcControlWoofer!(actuator_torques, x_true, t, joint_pos, joint_vel, param)
+				   MPCControl.control!(actuator_torques, x_true, t, joint_pos, joint_vel, param)
                    s.d.ctrl .= actuator_torques
                 end
 

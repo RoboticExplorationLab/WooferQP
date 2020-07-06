@@ -1,4 +1,4 @@
-function nextFootstepLocation(v_b::Vector{T}, ω_z::T, cur_phase::Int, i::Int, param::ControllerParams) where {T<:Number}
+function footstep_location(v_b::Vector{T}, ω_z::T, cur_phase::Int, i::Int, param::ControllerParams) where {T<:Number}
 	# implement body velocity heuristic to get next body relative foot location
 	ω = [0, 0, ω_z]
 
@@ -18,7 +18,7 @@ function nextFootstepLocation(v_b::Vector{T}, ω_z::T, cur_phase::Int, i::Int, p
 	return next_foot_loc
 end
 
-function constructFootHistory!(t::T, param::ControllerParams) where {T<:Number}
+function foot_history!(t::T, param::ControllerParams) where {T<:Number}
 	# construct the contact and foot location history for MPC solver
 	# inputs:
 	#
@@ -51,7 +51,7 @@ function constructFootHistory!(t::T, param::ControllerParams) where {T<:Number}
 			if param.gait.contact_phases[j, prev_phase] == 1
 				if param.gait.contact_phases[j, next_phase] == 0
 					# next foot placement must be planned prior to foot being released
-					param.planner_foot_loc[LegIndexToRange(j)] .= nextFootstepLocation(v_b_i, ω_b_i[3], next_phase, j, param)
+					param.planner_foot_loc[LegIndexToRange(j)] .= footstep_location(v_b_i, ω_b_i[3], next_phase, j, param)
 					prev_foot_locs[LegIndexToRange(j)] .= param.planner_foot_loc[LegIndexToRange(j)]
 				else
 					# integrate param.x_ref via midpoint to get body relative foot location in the future
