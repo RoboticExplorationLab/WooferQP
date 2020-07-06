@@ -7,9 +7,7 @@ using LinearAlgebra
 using Parametron
 using OSQP
 using StaticArrays
-
-include("../QuadrupedDynamics.jl")
-using .QuadrupedDynamics
+using ..QuadrupedDynamics 
 
 include("../Config.jl")
 include("../Rotations.jl")

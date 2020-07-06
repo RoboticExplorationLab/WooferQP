@@ -5,8 +5,8 @@ using StaticArrays
 using DataStructures
 
 include("XMLParser.jl")
-include("../Common/MPCControl/MPCControl.jl")
 include("../Common/QuadrupedDynamics.jl")
+include("../Common/MPCControl/MPCControl.jl")
 include("../Common/Utilities.jl")
 include("../Common/Quaternions.jl")
 
