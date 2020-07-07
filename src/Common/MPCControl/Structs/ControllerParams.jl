@@ -69,8 +69,6 @@ mutable struct ControllerParams
 
 		forces = [0, 0, 1.0, 0, 0, 1.0, 0, 0, 1.0, 0, 0, 1.0]*woofer.inertial.sprung_mass*9.81/4
 
-		@show pwd()
-
 		x_des = [0.0; 0.0; data["stance_height"]; zeros(3); data["xy_vel"]; zeros(3); data["omega_z"]]
 
 		nom_foot_loc = ForwardKinematicsAll(zeros(12))
