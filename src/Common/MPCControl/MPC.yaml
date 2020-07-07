@@ -13,6 +13,7 @@ gait:
   type: "trot"
   stance_time: 0.2
   swing_time: 0.15
+  # TODO: Add better fields here to specify arbitrary gait types?
 
 # Foot Placement:
 foot_dx: 0.0
