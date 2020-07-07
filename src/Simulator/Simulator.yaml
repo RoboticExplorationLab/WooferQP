@@ -1,0 +1,5 @@
+simulator:
+  odrive_dt: 0.001
+  sim_data_dt: 0.001
+  mocap_dt: 0.009
+  buffer_update_dt: 0.001

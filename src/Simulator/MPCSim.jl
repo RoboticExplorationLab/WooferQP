@@ -4,6 +4,8 @@ using OSQP
 using StaticArrays
 using DataStructures
 
+import YAML
+
 include("XMLParser.jl")
 include("../Common/QuadrupedDynamics.jl")
 include("../Common/MPCControl/MPCControl.jl")
@@ -35,11 +37,13 @@ function simulate()
     d = s.d
     m = s.m
 
+	simulator_yaml = YAML.load(open("Simulator.yaml"))
+
     # Initialize update rates
-    ODRIVE_DT = 0.001
-    SIM_DATA_DT = 0.001
-    MOCAP_DT = 0.009
-    BUFFER_UPDATE_DT = 0.001
+    ODRIVE_DT = simulator_yaml["simulator"]["odrive_dt"]
+    SIM_DATA_DT = simulator_yaml["simulator"]["sim_data_dt"]
+    MOCAP_DT = simulator_yaml["simulator"]["mocap_dt"]
+    BUFFER_UPDATE_DT = simulator_yaml["simulator"]["buffer_update_dt"]
 
     last_t = 0.0
     last_sim_data_t = 0.0
@@ -65,11 +69,6 @@ function simulate()
 
 
 	# Allocate everything once
-
-	# desired position
-	xy_vel = [0.5, 0.0]
-	ω = 0.0
-	x_des = [0.0, 0.0, 0.28, zeros(3)..., xy_vel..., zeros(3)..., ω]
 	# true state information
 	x = zeros(13)
 	x_true = zeros(12)
@@ -77,40 +76,7 @@ function simulate()
 	joint_vel = zeros(12)
 	contacts = zeros(4)
 
-	# Δt for MPC dynamics
-	planning_dt = 0.05
-	# number of planning horizon
-	N = 15
-	# frequency of force calculation
-	mpc_update = 0.05
-
-	# state penalty in QP
-	# q = [1e4, 1e4, 5e4, 4e3, 4e3, 1e3, 1e4, 1e4, 1e2, 1e2, 1e2, 1e3]
-	q = [0, 0, 5e4, 1e3, 1e5, 1e3, 1e4, 1e4, 1e2, 1e2, 1e2, 1e4]
-	# q = [0, 0, 5e4, 1e5, 1e5, 1e2, 1e4, 1e4, 1e2, 1e4, 1e4, 1e3]
-	# control penalty in QP
-	r = [1e-2, 1e-2, 1e-4, 1e-2, 1e-2, 1e-4, 1e-2, 1e-2, 1e-4, 1e-2, 1e-2, 1e-4]
-
-	optimizer = MPCControl.OptimizerParams(planning_dt, N, q, r)
-
-	nom_foot_loc = ForwardKinematicsAll(zeros(12))
-	offset = [1 -1 1 -1]
-	Δx = 0.0
-	Δy = 0.025
-	for i=1:4
-		nom_foot_loc[LegIndexToRange(i)] += [Δx, Δy*offset[i], 0]
-	end
-
-	# gait = createStandingGait()
-	# gait = createTrotGait(stance_time=0.15, swing_time=0.15)
-	gait = MPCControl.createPronkGait(stance_time=0.2, flight_time=0.1)
-	# gait = createPaceGait(stance_time=0.1, swing_time=0.15)
-	# gait = createBoundGait(front_time=0.15, back_time=0.15, stance_time=0.05)
-	swing = MPCControl.SwingLegParams(-0.20, 100, 1)
-
-	use_lqr = false # use lqr in cost to go
-	vel_ctrl = false # integrate positions, interpolate velocities
-	param = MPCControl.ControllerParams(N, mpc_update, x_des, use_lqr, vel_ctrl, nom_foot_loc, optimizer, gait, swing)
+	param = MPCControl.ControllerParams("../Common/MPCControl/MPC.yaml")
 
     # Loop until the user closes the window
     WooferSim.alignscale(s)

@@ -37,15 +37,9 @@ mutable struct ControllerParams
 	gait::GaitParams
 	swing::SwingLegParams
 
-	function ControllerParams(	N::Int64,
-								mpc_update::Float64,
-								x_des::Vector{Float64},
-								use_lqr::Bool,
-								vel_ctrl::Bool,
-								nom_foot_loc::Vector{Float64},
-								optimizer::OptimizerParams,
-								gait::GaitParams,
-								swing::SwingLegParams	)
+	function ControllerParams(path::String)
+		data = YAML.load(open(path))
+		N = data["N"]
 
 		mpc_torques = zeros(12)
 		swing_torques = zeros(12)
@@ -75,9 +69,41 @@ mutable struct ControllerParams
 
 		forces = [0, 0, 1.0, 0, 0, 1.0, 0, 0, 1.0, 0, 0, 1.0]*woofer.inertial.sprung_mass*9.81/4
 
+		@show pwd()
+
+		x_des = [0.0; 0.0; data["stance_height"]; zeros(3); data["xy_vel"]; zeros(3); data["omega_z"]]
+
+		nom_foot_loc = ForwardKinematicsAll(zeros(12))
+		offset = [1 -1 1 -1]
+		Δx = data["foot_dx"]
+		Δy = data["foot_dx"]
+		for i=1:4
+			nom_foot_loc[LegIndexToRange(i)] += [Δx, Δy*offset[i], 0]
+		end
+
+		optimizer = OptimizerParams(	data["dynamics_discretization"],
+										N,
+										data["q"],
+										data["r"]
+									)
+
+		gait_type = data["gait"]["type"]
+
+		if gait_type == "trot"
+			gait = createTrotGait(stance_time=data["gait"]["stance_time"], swing_time=data["gait"]["swing_time"])
+		elseif gait_type == "pronk"
+			gait = createPronkGait(stance_time=data["gait"]["stance_time"], flight_time=data["gait"]["swing_time"])
+		elseif gait_type == "pace"
+			gait = createPaceGait(stance_time=data["gait"]["stance_time"], swing_time=data["gait"]["swing_time"])
+		else
+			gait = createStandingGait()
+		end
+
+		swing = SwingLegParams(data["swing"]["step_height"], data["swing"]["omega"], data["swing"]["zeta"])
+
 		new(mpc_torques, swing_torques, prev_phase, cur_phase, cur_phase_time, last_replan_t, replan_update, cur_foot_loc,
 			active_feet, active_feet_12, trajectory_foot_loc, planner_foot_loc, next_foot_loc,
-			nom_foot_loc, N, use_lqr, vel_ctrl, mpc_update, last_t, contacts, foot_locs, x_ref,
+			nom_foot_loc, N, data["use_lqr"], data["velocity_control"], data["update_dt"], last_t, contacts, foot_locs, x_ref,
 			forces, x_des, optimizer, gait, swing)
 	end
 end
