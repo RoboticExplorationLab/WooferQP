@@ -1,8 +1,7 @@
 using StaticArrays
 using LinearAlgebra
 using TrajectoryOptimization
-using Parametron
-using OSQP
+using TimerOutputs
 
 include("../src/Common/Config.jl")
 include("../src/Common/Quaternions.jl")
@@ -32,6 +31,8 @@ vel_ctrl = false # integrate positions, interpolate velocities
 
 swing = SwingLegParams(-0.20, 100, 1)
 gait = createTrotGait(stance_time=0.15, swing_time=0.15)
+
+const to = TimerOutput()
 optimizer = OptimizerParams(dt, N, q, r, x_des)
 param = ControllerParams(N, mpc_update, x_des, use_lqr, vel_ctrl, zeros(12), optimizer, gait, swing)
 
