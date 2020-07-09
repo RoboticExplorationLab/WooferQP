@@ -36,16 +36,7 @@ const to = TimerOutput()
 optimizer = OptimizerParams(dt, N, q, r, x_des)
 param = ControllerParams(N, mpc_update, x_des, use_lqr, vel_ctrl, zeros(12), optimizer, gait, swing)
 
-x_ref = zeros(12, N+1)
-
 generateReferenceTrajectory!(x0, param)
-
-contacts = zeros(Int64, 4, N)
-foot_locs = zeros(12, N)
-
-α = zeros(12)
-
-cur_foot_loc = ForwardKinematicsAll(α)
 
 t = 0.0
 

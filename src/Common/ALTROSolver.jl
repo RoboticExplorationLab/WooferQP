@@ -3,8 +3,6 @@ This file turns the discrete MPC problem into a quadratic problem via a sparse
 formulation.
 """
 
-using ForwardDiff
-
 function mass(contacts)
 	return woofer.inertial.sprung_mass + sum([2*woofer.inertial.lower_link_mass*(1-contacts[i]) for i=1:4])
 end
@@ -80,21 +78,26 @@ function solveFootForces!(x_curr::AbstractVector, param::ControllerParams) where
 	n = 12
 	m = 12
 
+	TrajectoryOptimization.reset!(opt.constraints)
+
 	# TODO: standardize between QP and ALTRO
-	opt.model.x_ref .= [param.x_ref[:, i] for i=1:(param.N+1)]
-	opt.model.u_ref .= [zeros(m) for i=1:(param.N+1)]
-	opt.model.contacts .= [param.contacts[:, i] for i=1:(param.N+1)]
-	opt.model.foot_locs .= [param.foot_locs[:, i] for i=1:(param.N+1)]
+	for i=1:(param.N+1)
+		opt.model.x_ref[i] .= param.x_ref[:, i]
+		# opt.model.u_ref .= [zeros(m) for i=1:(param.N+1)]
+		opt.model.contacts[i] .= param.contacts[:, i]
+		opt.model.foot_locs[i] .= param.foot_locs[:, i]
+	end
 
+	opt.solver.solver_al.solver_uncon.x0 .= x_curr
 
-	problem = Problem(opt.model, opt.objective, param.x_des, tf, x0=zeros(n), constraints=opt.constraints)
-	initial_states!(problem, opt.X0)
-	initial_controls!(problem, opt.U0)
-	solver = ALTROSolver(problem)
-	TrajectoryOptimization.solve!(solver)
+	initial_states!(opt.problem, opt.X0)
+	initial_controls!(opt.problem, opt.U0)
+	@time TrajectoryOptimization.solve!(opt.solver)
 
-	opt.X0 = states(solver)
-	opt.U0 = controls(solver)
+	opt.X0 = states(opt.solver)
+	opt.U0 = controls(opt.solver)
+
+	@show opt.X0[1]
 
 	param.forces .= opt.U0[1]
 end
