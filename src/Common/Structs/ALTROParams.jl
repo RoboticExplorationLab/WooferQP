@@ -55,32 +55,24 @@ mutable struct OptimizerParams
 		X0 = [zeros(n) for i=1:(N+1)]
 		U0 = [zeros(m) for i=1:N]
 
-		@timeit to "Model" begin
-			model = Quadruped(woofer, dt, N, n, m)
-		end
+		model = Quadruped(woofer, dt, N, n, m)
 
-		@timeit to "Constraint" begin
-			@timeit to "Set" constraints = TrajectoryOptimization.ConstraintSet(n,m,N)
-			@timeit to "Friction Constraint" begin
-				friction = FrictionConstraint(m, μ)
-				add_constraint!(constraints, friction, 1:N)
-			end
+		constraints = TrajectoryOptimization.ConstraintSet(n,m,N)
 
-			@timeit to "Bound Constraint" begin
-				u_min = [-Inf, -Inf, min_vert_force, -Inf, -Inf, min_vert_force, -Inf, -Inf, min_vert_force, -Inf, -Inf, min_vert_force]
-				u_max = [Inf, Inf, max_vert_force, Inf, Inf, max_vert_force, Inf, Inf, max_vert_force, Inf, Inf, max_vert_force]
-				bound = BoundConstraint(n,m, u_min=u_min, u_max=u_max)
-				add_constraint!(constraints, bound, 1:N)
-			end
-		end
+		friction = FrictionConstraint(m, μ)
+		add_constraint!(constraints, friction, 1:N)
 
+		u_min = [-Inf, -Inf, min_vert_force, -Inf, -Inf, min_vert_force, -Inf, -Inf, min_vert_force, -Inf, -Inf, min_vert_force]
+		u_max = [Inf, Inf, max_vert_force, Inf, Inf, max_vert_force, Inf, Inf, max_vert_force, Inf, Inf, max_vert_force]
+		bound = BoundConstraint(n,m, u_min=u_min, u_max=u_max)
+		add_constraint!(constraints, bound, 1:N)
 
 		# objective
-		@timeit to "Objective" objective = LQRObjective(Q, R, Q, x_des, N)
+		objective = LQRObjective(Q, R, Q, x_des, N)
 
 		tf = dt*N
-		@timeit to "Problem" problem = Problem(model, objective, x_des, tf, x0=zeros(n), constraints=constraints)
-		@timeit to "Solver" solver = ALTROSolver(problem)
+		problem = Problem(model, objective, x_des, tf, x0=zeros(n), constraints=constraints)
+		solver = ALTROSolver(problem)
 
 		TrajectoryOptimization.solve!(solver)
 
