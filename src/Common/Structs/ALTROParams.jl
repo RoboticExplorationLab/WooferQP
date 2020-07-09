@@ -82,6 +82,8 @@ mutable struct OptimizerParams
 		@timeit to "Problem" problem = Problem(model, objective, x_des, tf, x0=zeros(n), constraints=constraints)
 		@timeit to "Solver" solver = ALTROSolver(problem)
 
+		TrajectoryOptimization.solve!(solver)
+
 		new(dt, n, m, model, objective, constraints, problem, solver, X0, U0, Q, R)
 	end
 end
