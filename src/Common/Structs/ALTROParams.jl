@@ -70,7 +70,9 @@ mutable struct OptimizerParams
 		objective = LQRObjective(Q, R, Q, x_des, N)
 
 		tf = dt*N
+		problem = Problem(model, objective, x_des, tf, x0=zeros(n), constraints=constraints)
+		solver = ALTROSolver(problem)
 
-		new(dt, n, m, model, objective, constraints, X0, U0, Q, R)
+		new(dt, n, m, model, objective, constraints, problem, solver, X0, U0, Q, R)
 	end
 end
