@@ -86,7 +86,8 @@ function solveFootForces!(x_curr::AbstractVector, param::ControllerParams) where
 	opt.model.contacts .= [param.contacts[:, i] for i=1:(param.N+1)]
 	opt.model.foot_locs .= [param.foot_locs[:, i] for i=1:(param.N+1)]
 
-	problem = Problem(opt.model, opt.objective, param.x_des, tf, x0=x_curr, constraints=opt.constraints)
+
+	problem = Problem(opt.model, opt.objective, param.x_des, tf, x0=zeros(n), constraints=opt.constraints)
 	initial_states!(problem, opt.X0)
 	initial_controls!(problem, opt.U0)
 	solver = ALTROSolver(problem)
