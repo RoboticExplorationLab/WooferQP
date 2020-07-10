@@ -3,15 +3,22 @@ using Parametron
 using OSQP
 using StaticArrays
 using TrajectoryOptimization
+using Rotations
 using DataStructures
 
 import YAML
 
 include("XMLParser.jl")
+<<<<<<< HEAD
 include("../Common/QuadrupedDynamics.jl")
 include("../Common/MPCControl/MPCControl.jl")
 include("../Common/Utilities.jl")
 include("../Common/Quaternions.jl")
+=======
+include("../Common/Dynamics.jl")
+include("../Common/Config.jl")
+include("../Common/MPCController.jl")
+>>>>>>> Removed extra files
 
 using .QuadrupedDynamics
 import .MPCControl
