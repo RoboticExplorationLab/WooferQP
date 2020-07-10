@@ -67,15 +67,16 @@ U = controls(solver)
 x_curr = [0.1, 0.1, 0.25, 0.1, 0.1, 0.1, -0.01, 0.01, 0.1, -0.01, 0.1, 0.2]
 trajectories(x_curr, 0.5, param)
 
-# for i=1:(N+1)
-# 	model.x_ref[i] .= param.x_ref[:, i]
-# 	# opt.model.u_ref .= [zeros(m) for i=1:(param.N+1)]
-# 	model.contacts[i] .= param.contacts[:, i]
-# 	model.foot_locs[i] .= param.foot_locs[:, i]
-# end
+for i=1:(N+1)
+	model.x_ref[i] .= param.x_ref[:, i]
+	# opt.model.u_ref .= [zeros(m) for i=1:(param.N+1)]
+	model.contacts[i] .= param.contacts[:, i]
+	model.foot_locs[i] .= param.foot_locs[:, i]
+end
 solver.solver_al.solver_uncon.x0 .= x_curr
+solver.opts.projected_newton = false
 # # set_initial_state!(solver, x_curr)
 
-@time TrajectoryOptimization.solve!(solver)
+TrajectoryOptimization.solve!(solver)
 X = states(solver)
 U = controls(solver)

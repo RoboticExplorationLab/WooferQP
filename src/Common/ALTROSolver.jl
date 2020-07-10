@@ -78,7 +78,7 @@ function solveFootForces!(x_curr::AbstractVector, param::ControllerParams) where
 	n = 12
 	m = 12
 
-	TrajectoryOptimization.reset!(opt.constraints)
+	# TrajectoryOptimization.reset!(opt.constraints)
 
 	# TODO: standardize between QP and ALTRO
 	for i=1:(param.N+1)
@@ -96,8 +96,6 @@ function solveFootForces!(x_curr::AbstractVector, param::ControllerParams) where
 
 	opt.X0 = states(opt.solver)
 	opt.U0 = controls(opt.solver)
-
-	@show opt.X0[1]
 
 	param.forces .= opt.U0[1]
 end
