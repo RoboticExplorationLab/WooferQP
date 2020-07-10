@@ -3,14 +3,13 @@ using Parametron
 using OSQP
 using StaticArrays
 using TrajectoryOptimization
+using Rotations
 using DataStructures
 
 include("XMLParser.jl")
 include("../Common/Dynamics.jl")
 include("../Common/Config.jl")
-# include("../Common/Rotations.jl")
 include("../Common/MPCController.jl")
-include("../Common/Quaternions.jl")
 
 function simulate()
 	woofer = WooferConfig("../Common/Woofer.yaml")

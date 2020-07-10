@@ -11,16 +11,18 @@ function NonLinearContinuousDynamics(x, u, r, contacts)
 	J = woofer.inertial.body_inertia
 
 	x_d_1_3 = x[7:9]
-	x_d_4_6 = 0.5*V()*L_q(ThreeParamToQuat(x[4:6]))*VecToQuat(x[10:12])
-	x_d_7_9 = 1/woofer.inertial.sprung_mass * sum(repeat(contacts', 3, 1) .* reshape(u, 3, 4), dims=2) + [0; 0; -9.81]
+	x_d_4_6 = Rotations.kinematics(MRP(x[4:6]), x[10:12])
 
-	torque_sum = zeros(3)
+	torque_sum = @SVector zeros(3)
+	force_sum = @SVector [0, 0, -9.81]
 	for i=1:4
-		torque_sum += contacts[i]*SkewSymmetricMatrix(r[LegIndexToRange(i)])*QuatToRotMatrix(ThreeParamToQuat(x[4:6]))'*u[LegIndexToRange(i)]
+		force_sum += 1/woofer.inertial.sprung_mass*contacts[i]*u[SLegIndexToRange(i)]
+		torque_sum += contacts[i]*Rotations.skew(r[SLegIndexToRange(i)])*MRP(x[4:6])*u[SLegIndexToRange(i)]
 	end
-	x_d_10_12 = inv(J)*(-SkewSymmetricMatrix(x[10:12])*J*x[10:12] + torque_sum)
+	x_d_7_9 = force_sum
+	x_d_10_12 = inv(J)*(-Rotations.skew(x[10:12])*J*x[10:12] + torque_sum)
 
-	return [x_d_1_3..., x_d_4_6..., x_d_7_9..., x_d_10_12...]
+	return [x_d_1_3; x_d_4_6; x_d_7_9; x_d_10_12]
 end
 
 function LinearizedContinuousDynamicsA(x, u, r, contacts)
