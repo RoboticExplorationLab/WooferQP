@@ -62,8 +62,8 @@ mutable struct OptimizerParams
 		friction = FrictionConstraint(m, μ)
 		add_constraint!(constraints, friction, 1:N)
 
-		u_min = [-Inf, -Inf, min_vert_force, -Inf, -Inf, min_vert_force, -Inf, -Inf, min_vert_force, -Inf, -Inf, min_vert_force]
-		u_max = [Inf, Inf, max_vert_force, Inf, Inf, max_vert_force, Inf, Inf, max_vert_force, Inf, Inf, max_vert_force]
+		u_min = @SVector [-Inf, -Inf, min_vert_force, -Inf, -Inf, min_vert_force, -Inf, -Inf, min_vert_force, -Inf, -Inf, min_vert_force]
+		u_max = @SVector [Inf, Inf, max_vert_force, Inf, Inf, max_vert_force, Inf, Inf, max_vert_force, Inf, Inf, max_vert_force]
 		bound = BoundConstraint(n,m, u_min=u_min, u_max=u_max)
 		add_constraint!(constraints, bound, 1:N)
 
@@ -73,6 +73,7 @@ mutable struct OptimizerParams
 		tf = dt*N
 		problem = Problem(model, objective, x_des, tf, x0=zeros(n), constraints=constraints)
 		solver = ALTROSolver(problem)
+		solver.opts.projected_newton = false
 
 		TrajectoryOptimization.solve!(solver)
 
