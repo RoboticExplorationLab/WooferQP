@@ -151,6 +151,8 @@ function simulate()
 
 				   MPCControl.control!(actuator_torques, x_true, t, joint_pos, joint_vel, param)
                    s.d.ctrl .= actuator_torques
+
+				   last_sim_data_t = t
                 end
 
                 # # Publish mocap data at rate determined by MOCAP_DT. Includes latency
