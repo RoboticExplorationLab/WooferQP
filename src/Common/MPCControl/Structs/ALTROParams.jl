@@ -1,10 +1,10 @@
-struct Quadruped{T, S} <: TO.AbstractModel
-	x_ref::Vector{SVector}
-	u_ref::Vector{SVector}
-	foot_locs::Vector{SVector}
-	contacts::Vector{SVector}
-	times::SVector
-	J::SMatrix{3, 3, T}
+struct Quadruped{T, S, P} <: TO.AbstractModel
+	x_ref::Vector{SVector{12, T}}
+	u_ref::Vector{SVector{12, T}}
+	foot_locs::Vector{SVector{12, T}}
+	contacts::Vector{SVector{4, T}}
+	times::SVector{P, T}
+	J::SMatrix{3, 3, T, 9}
 	sprung_mass::T
 
 	function Quadruped(dt::T, N::S) where {T <: Real, S <: Integer}
@@ -15,7 +15,7 @@ struct Quadruped{T, S} <: TO.AbstractModel
 		foot_locs = [@SVector zeros(T, 12) for i=1:(N+1)]
 		contacts = [@SVector zeros(T, 4) for i=1:(N+1)]
 
-		new{T, S}(x_ref, u_ref, foot_locs, contacts, times, woofer.inertial.body_inertia, woofer.inertial.sprung_mass)
+		new{T, S, N+1}(x_ref, u_ref, foot_locs, contacts, times, woofer.inertial.body_inertia, woofer.inertial.sprung_mass)
 	end
 end
 
@@ -45,7 +45,7 @@ mutable struct OptimizerParams
 
 	function OptimizerParams(dt::Float64, N::Int64, q::Vector{Float64}, r::Vector{Float64}, x_des::Vector{Float64}; n::Int64=12, m::Int64=12)
 		# constants
-		μ = 1.0
+		μ = 0.7
 		min_vert_force = 0.0
 		max_vert_force = 133.0
 

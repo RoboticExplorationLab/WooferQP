@@ -28,16 +28,16 @@ function NonLinearContinuousDynamics(x::SVector, u::SVector, r::SVector, contact
 	return [x_d_1_3; x_d_4_6; x_d_7_9; x_d_10_12]
 end
 
-function LinearizedContinuousDynamicsA(x, u, r, contacts, J, sprung_mass)
+function LinearizedContinuousDynamicsA(x::SVector{n, T}, u::SVector{m, T}, r, contacts, J, sprung_mass)::SMatrix{n,n, T, n*n} where {T, n, m}
 	return ForwardDiff.jacobian((x_var)->NonLinearContinuousDynamics(x_var, u, r, contacts, J, sprung_mass), x)
 end
 
-function LinearizedContinuousDynamicsB(x, u, r, contacts, J, sprung_mass)
+function LinearizedContinuousDynamicsB(x::SVector{n, T}, u::SVector{m, T}, r, contacts, J, sprung_mass)::SMatrix{n,m, T, n*m} where {T, n, m}
 	return ForwardDiff.jacobian((u_var)->NonLinearContinuousDynamics(x, u_var, r, contacts, J, sprung_mass), u)
 end
 
 function TO.RobotDynamics.dynamics(model::Quadruped, x, u, t)
-	k = searchsortedfirst(model.times, t)
+	k::Int64 = searchsortedfirst(model.times, t)
 	if model.times[k] != t
 		k -= 1
 	end
@@ -46,8 +46,6 @@ function TO.RobotDynamics.dynamics(model::Quadruped, x, u, t)
 	B = LinearizedContinuousDynamicsB(model.x_ref[k], model.u_ref[k], model.foot_locs[k], model.contacts[k], model.J, model.sprung_mass)
 	d = NonLinearContinuousDynamics(model.x_ref[k], model.u_ref[k], model.foot_locs[k], model.contacts[k], model.J, model.sprung_mass)
 	x_dot = A*(x - model.x_ref[k]) + B*(u - model.u_ref[k]) + d
-
-	# x_dot = NonLinearContinuousDynamics(x, u, model.foot_locs[k], model.contacts[k])
 
 	return x_dot
 end
@@ -96,7 +94,7 @@ function foot_forces!(x_curr::AbstractVector{T}, param::ControllerParams) where 
 
 	initial_states!(opt.problem, opt.X0)
 	initial_controls!(opt.problem, opt.U0)
-	@time solve!(opt.solver)
+	solve!(opt.solver)
 
 	opt.X0 = states(opt.solver)
 	opt.U0 = controls(opt.solver)

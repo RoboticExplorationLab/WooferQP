@@ -13,7 +13,7 @@ solver: "ALTRO" # "OSQP"
 gait:
   type: "trot"
   stance_time: 0.3
-  swing_time: 0.2
+  swing_time: 0.15
   # TODO: Add better fields here to specify arbitrary gait types?
 
 # Foot Placement:
@@ -22,7 +22,7 @@ foot_dy: 0.025
 
 # Swing Parameters
 swing:
-  step_height: -0.2 # distance below body of foot during swing
+  step_height: -0.225 # distance below body of foot during swing
   omega: 100 # natural frequency of PD
   zeta: 1 # damping of PD
 
