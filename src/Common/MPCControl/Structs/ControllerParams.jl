@@ -79,11 +79,20 @@ mutable struct ControllerParams
 			nom_foot_loc[LegIndexToRange(i)] += [Δx, Δy*offset[i], 0]
 		end
 
-		optimizer = OptimizerParams(	data["dynamics_discretization"],
-										N,
-										data["q"],
-										data["r"]
-									)
+		if using_altro
+			optimizer = OptimizerParams(	data["dynamics_discretization"],
+											N,
+											data["q"],
+											data["r"],
+											x_des
+										)
+		else
+			optimizer = OptimizerParams(	data["dynamics_discretization"],
+											N,
+											data["q"],
+											data["r"]
+										)
+		end
 
 		gait_type = data["gait"]["type"]
 

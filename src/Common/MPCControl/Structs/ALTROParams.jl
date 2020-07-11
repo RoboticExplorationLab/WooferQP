@@ -1,24 +1,26 @@
-mutable struct Quadruped <: AbstractModel
-	config::WooferConfig
-	x_ref::Vector{Vector{Float64}}
-	u_ref::Vector{Vector{Float64}}
-	foot_locs::Vector{Vector{Float64}}
-	contacts::Vector{Vector{Float64}}
-	times::Vector{Float64}
-	n::Int64
-	m::Int64
+struct Quadruped{T, S} <: TO.AbstractModel
+	x_ref::Vector{Vector{T}}
+	u_ref::Vector{Vector{T}}
+	foot_locs::Vector{Vector{T}}
+	contacts::Vector{Vector{T}}
+	times::Vector{T}
+	n::S
+	m::S
 
-	function Quadruped(config::WooferConfig, dt::Float64, N::Int64, n::Int64, m::Int64)
+	function Quadruped(dt::T, N::S, n::S, m::S) where {T <: Real, S <: Integer}
 		tf = dt*N
 		times = collect(range(0, tf, length=N+1))
-		x_ref = [zeros(12) for i=1:(N+1)]
-		u_ref = [zeros(12) for i=1:(N+1)]
-		foot_locs = [zeros(12) for i=1:(N+1)]
-		contacts = [zeros(4) for i=1:(N+1)]
+		x_ref = [zeros(T, 12) for i=1:(N+1)]
+		u_ref = [zeros(T, 12) for i=1:(N+1)]
+		foot_locs = [zeros(T, 12) for i=1:(N+1)]
+		contacts = [zeros(T, 4) for i=1:(N+1)]
 
-		new(config, x_ref, u_ref, foot_locs, contacts, times, n, m)
+		new{T, S}(x_ref, u_ref, foot_locs, contacts, times, n, m)
 	end
 end
+
+TO.RobotDynamics.state_dim(::Quadruped) = 12
+TO.RobotDynamics.control_dim(::Quadruped) = 12
 
 mutable struct OptimizerParams
 	# discretization length
@@ -31,7 +33,7 @@ mutable struct OptimizerParams
 	# ALTRO Variables:
 	model::Quadruped
 	objective::Objective
-	constraints::ConstraintSet
+	constraints::ConstraintList
 	problem::Problem
 	solver::ALTROSolver
 
@@ -55,9 +57,9 @@ mutable struct OptimizerParams
 		X0 = [zeros(n) for i=1:(N+1)]
 		U0 = [zeros(m) for i=1:N]
 
-		model = Quadruped(woofer, dt, N, n, m)
+		model = Quadruped(dt, N, n, m)
 
-		constraints = TrajectoryOptimization.ConstraintSet(n,m,N)
+		constraints = ConstraintList(n,m,N)
 
 		friction = FrictionConstraint(m, μ)
 		add_constraint!(constraints, friction, 1:N)
@@ -75,7 +77,7 @@ mutable struct OptimizerParams
 		solver = ALTROSolver(problem)
 		solver.opts.projected_newton = false
 
-		TrajectoryOptimization.solve!(solver)
+		solve!(solver)
 
 		new(dt, n, m, model, objective, constraints, problem, solver, X0, U0, Q, R)
 	end

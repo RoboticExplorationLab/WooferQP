@@ -1,4 +1,4 @@
-struct FrictionConstraint{T} <: TrajectoryOptimization.AbstractConstraint{Inequality,Control,16}
+struct FrictionConstraint{T} <: TO.ControlConstraint
 	m::Int
 	μ::T
 	function FrictionConstraint(m::Int, μ::T) where T
@@ -7,7 +7,8 @@ struct FrictionConstraint{T} <: TrajectoryOptimization.AbstractConstraint{Inequa
 end
 
 @inline TrajectoryOptimization.control_dim(con::FrictionConstraint) = con.m
-@inline TrajectoryOptimization.sense(con::FrictionConstraint) = Inequality
+@inline TrajectoryOptimization.sense(con::FrictionConstraint) = Inequality()
+Base.length(::FrictionConstraint) = 16
 
 function TrajectoryOptimization.evaluate(con::FrictionConstraint, u::SVector)
 	return @SVector [

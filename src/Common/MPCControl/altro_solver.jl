@@ -8,21 +8,37 @@ function mass(contacts)
 end
 
 function NonLinearContinuousDynamics(x, u, r, contacts)
+	# J = woofer.inertial.body_inertia
+	#
+	# x_d_1_3 = x[7:9]
+	# x_d_4_6 = Rotations.kinematics(MRP(x[4:6]), x[10:12])
+	#
+	# torque_sum = @SVector zeros(3)
+	# force_sum = @SVector [0, 0, -9.81]
+	# for i=1:4
+	# 	force_sum += 1/woofer.inertial.sprung_mass*contacts[i]*u[SLegIndexToRange(i)]
+	# 	torque_sum += contacts[i]*Rotations.skew(r[SLegIndexToRange(i)])*MRP(x[4:6])*u[SLegIndexToRange(i)]
+	# end
+	# x_d_7_9 = force_sum
+	# x_d_10_12 = inv(J)*(-Rotations.skew(x[10:12])*J*x[10:12] + torque_sum)
+	#
+	# return [x_d_1_3; x_d_4_6; x_d_7_9; x_d_10_12]
+
+
+
 	J = woofer.inertial.body_inertia
 
 	x_d_1_3 = x[7:9]
-	x_d_4_6 = Rotations.kinematics(MRP(x[4:6]), x[10:12])
+	x_d_4_6 = 0.5*V()*L_q(ThreeParamToQuat(x[4:6]))*VecToQuat(x[10:12])
+	x_d_7_9 = 1/woofer.inertial.sprung_mass * sum(repeat(contacts', 3, 1) .* reshape(u, 3, 4), dims=2) + [0; 0; -9.81]
 
-	torque_sum = @SVector zeros(3)
-	force_sum = @SVector [0, 0, -9.81]
+	torque_sum = zeros(3)
 	for i=1:4
-		force_sum += 1/woofer.inertial.sprung_mass*contacts[i]*u[SLegIndexToRange(i)]
-		torque_sum += contacts[i]*Rotations.skew(r[SLegIndexToRange(i)])*MRP(x[4:6])*u[SLegIndexToRange(i)]
+		torque_sum += contacts[i]*SkewSymmetricMatrix(r[LegIndexToRange(i)])*QuatToRotMatrix(ThreeParamToQuat(x[4:6]))'*u[LegIndexToRange(i)]
 	end
-	x_d_7_9 = force_sum
-	x_d_10_12 = inv(J)*(-Rotations.skew(x[10:12])*J*x[10:12] + torque_sum)
+	x_d_10_12 = inv(J)*(-SkewSymmetricMatrix(x[10:12])*J*x[10:12] + torque_sum)
 
-	return [x_d_1_3; x_d_4_6; x_d_7_9; x_d_10_12]
+	return [x_d_1_3..., x_d_4_6..., x_d_7_9..., x_d_10_12...]
 end
 
 function LinearizedContinuousDynamicsA(x, u, r, contacts)
@@ -33,7 +49,7 @@ function LinearizedContinuousDynamicsB(x, u, r, contacts)
 	return ForwardDiff.jacobian((u_var)->NonLinearContinuousDynamics(x, u_var, r, contacts), u)
 end
 
-function TrajectoryOptimization.dynamics(model::Quadruped, x, u, t)
+function TO.RobotDynamics.dynamics(model::Quadruped, x, u, t)
 	k = searchsortedfirst(model.times, t)
 	if model.times[k] != t
 		k -= 1
@@ -49,7 +65,7 @@ function TrajectoryOptimization.dynamics(model::Quadruped, x, u, t)
 	return x_dot
 end
 
-function generateReferenceTrajectory!(x_curr::Vector{T}, param::ControllerParams) where {T<:Number}
+function reference_trajectory!(x_curr::Vector{T}, param::ControllerParams) where {T<:Number}
 	# TODO: integrate the x,y,ψ position from the reference
 	α = collect(range(0, 1, length=param.N+1))
 	# interpolate everything but x, y position
@@ -70,7 +86,7 @@ function generateReferenceTrajectory!(x_curr::Vector{T}, param::ControllerParams
 	end
 end
 
-function solveFootForces!(x_curr::AbstractVector, param::ControllerParams) where {T<:Number}
+function foot_forces!(x_curr::AbstractVector, param::ControllerParams) where {T<:Number}
 	# x_ref: 12xN+1 matrix of state reference trajectory (where first column is x0)
 	# contacts: 4xN+1 matrix of foot contacts over the planning horizon
 	# foot_locs: 12xN+1 matrix of foot location in body frame over planning horizon
@@ -94,7 +110,7 @@ function solveFootForces!(x_curr::AbstractVector, param::ControllerParams) where
 
 	initial_states!(opt.problem, opt.X0)
 	initial_controls!(opt.problem, opt.U0)
-	@time TrajectoryOptimization.solve!(opt.solver)
+	@time solve!(opt.solver)
 
 	opt.X0 = states(opt.solver)
 	opt.U0 = controls(opt.solver)
