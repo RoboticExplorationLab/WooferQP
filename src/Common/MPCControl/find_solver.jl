@@ -1,4 +1,4 @@
-data = YAML.load(open(joinpath(@__DIR__, "MPC.yaml")))
+const data = YAML.load(open(joinpath(@__DIR__, "MPC.yaml")))
 
 
 

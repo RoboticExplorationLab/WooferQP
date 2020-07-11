@@ -7,30 +7,33 @@ function mass(contacts)
 	return woofer.inertial.sprung_mass + sum([2*woofer.inertial.lower_link_mass*(1-contacts[i]) for i=1:4])
 end
 
-function NonLinearContinuousDynamics(x, u, r, contacts)
-	J = woofer.inertial.body_inertia
+function NonLinearContinuousDynamics(x::SVector, u::SVector, r::SVector, contacts::SVector, J::SMatrix, sprung_mass::AbstractFloat)
+	rot = MRP(x[4], x[5], x[6])
 
-	x_d_1_3 = x[7:9]
-	x_d_4_6 = Rotations.kinematics(MRP(x[4:6]...), x[10:12])
+	v = @SVector [x[7], x[8], x[9]]
+	ω = @SVector [x[10], x[11], x[12]]
+
+	x_d_1_3 = v
+	x_d_4_6 = Rotations.kinematics(rot, ω)
 
 	torque_sum = @SVector zeros(3)
 	force_sum = @SVector [0, 0, -9.81]
 	for i=1:4
-		force_sum += 1/woofer.inertial.sprung_mass*contacts[i]*u[SLegIndexToRange(i)]
-		torque_sum += contacts[i]*Rotations.skew(r[SLegIndexToRange(i)])*MRP(x[4:6]...)'*u[SLegIndexToRange(i)]
+		force_sum += 1/sprung_mass*contacts[i]*u[SLegIndexToRange(i)]
+		torque_sum += contacts[i]*Rotations.skew(r[SLegIndexToRange(i)])*rot'*u[SLegIndexToRange(i)]
 	end
 	x_d_7_9 = force_sum
-	x_d_10_12 = inv(J)*(-Rotations.skew(x[10:12])*J*x[10:12] + torque_sum)
+	x_d_10_12 = inv(J)*(-Rotations.skew(ω)*J*ω + torque_sum)
 
 	return [x_d_1_3; x_d_4_6; x_d_7_9; x_d_10_12]
 end
 
-function LinearizedContinuousDynamicsA(x, u, r, contacts)
-	return ForwardDiff.jacobian((x_var)->NonLinearContinuousDynamics(x_var, u, r, contacts), x)
+function LinearizedContinuousDynamicsA(x, u, r, contacts, J, sprung_mass)
+	return ForwardDiff.jacobian((x_var)->NonLinearContinuousDynamics(x_var, u, r, contacts, J, sprung_mass), x)
 end
 
-function LinearizedContinuousDynamicsB(x, u, r, contacts)
-	return ForwardDiff.jacobian((u_var)->NonLinearContinuousDynamics(x, u_var, r, contacts), u)
+function LinearizedContinuousDynamicsB(x, u, r, contacts, J, sprung_mass)
+	return ForwardDiff.jacobian((u_var)->NonLinearContinuousDynamics(x, u_var, r, contacts, J, sprung_mass), u)
 end
 
 function TO.RobotDynamics.dynamics(model::Quadruped, x, u, t)
@@ -39,9 +42,9 @@ function TO.RobotDynamics.dynamics(model::Quadruped, x, u, t)
 		k -= 1
 	end
 
-	A = LinearizedContinuousDynamicsA(model.x_ref[k], model.u_ref[k], model.foot_locs[k], model.contacts[k])
-	B = LinearizedContinuousDynamicsB(model.x_ref[k], model.u_ref[k], model.foot_locs[k], model.contacts[k])
-	d = NonLinearContinuousDynamics(model.x_ref[k], model.u_ref[k], model.foot_locs[k], model.contacts[k])
+	A = LinearizedContinuousDynamicsA(model.x_ref[k], model.u_ref[k], model.foot_locs[k], model.contacts[k], model.J, model.sprung_mass)
+	B = LinearizedContinuousDynamicsB(model.x_ref[k], model.u_ref[k], model.foot_locs[k], model.contacts[k], model.J, model.sprung_mass)
+	d = NonLinearContinuousDynamics(model.x_ref[k], model.u_ref[k], model.foot_locs[k], model.contacts[k], model.J, model.sprung_mass)
 	x_dot = A*(x - model.x_ref[k]) + B*(u - model.u_ref[k]) + d
 
 	# x_dot = NonLinearContinuousDynamics(x, u, model.foot_locs[k], model.contacts[k])
@@ -84,10 +87,9 @@ function foot_forces!(x_curr::AbstractVector{T}, param::ControllerParams) where 
 
 	# TODO: standardize between QP and ALTRO
 	for i=1:(param.N+1)
-		opt.model.x_ref[i] .= param.x_ref[:, i]
-		# opt.model.u_ref .= [zeros(m) for i=1:(param.N+1)]
-		opt.model.contacts[i] .= param.contacts[:, i]
-		opt.model.foot_locs[i] .= param.foot_locs[:, i]
+		opt.model.x_ref[i] = SVector{12}(param.x_ref[:, i])
+		opt.model.contacts[i] = SVector{4}(param.contacts[:, i])
+		opt.model.foot_locs[i] = SVector{12}(param.foot_locs[:, i])
 	end
 
 	opt.solver.solver_al.solver_uncon.x0 .= x_curr

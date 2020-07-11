@@ -164,7 +164,7 @@ function simulate()
                            showerror(stdout, exc, bt)
                            println()
                         end
-
+                        
                         GLFW.DestroyWindow(s.window)
 
                         return

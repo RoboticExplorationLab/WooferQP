@@ -1,21 +1,21 @@
 struct Quadruped{T, S} <: TO.AbstractModel
-	x_ref::Vector{Vector{T}}
-	u_ref::Vector{Vector{T}}
-	foot_locs::Vector{Vector{T}}
-	contacts::Vector{Vector{T}}
-	times::Vector{T}
-	n::S
-	m::S
+	x_ref::Vector{SVector}
+	u_ref::Vector{SVector}
+	foot_locs::Vector{SVector}
+	contacts::Vector{SVector}
+	times::SVector
+	J::SMatrix{3, 3, T}
+	sprung_mass::T
 
-	function Quadruped(dt::T, N::S, n::S, m::S) where {T <: Real, S <: Integer}
+	function Quadruped(dt::T, N::S) where {T <: Real, S <: Integer}
 		tf = dt*N
-		times = collect(range(0, tf, length=N+1))
-		x_ref = [zeros(T, 12) for i=1:(N+1)]
-		u_ref = [zeros(T, 12) for i=1:(N+1)]
-		foot_locs = [zeros(T, 12) for i=1:(N+1)]
-		contacts = [zeros(T, 4) for i=1:(N+1)]
+		times = SVector{N+1}(collect(range(0, tf, length=N+1)))
+		x_ref = [@SVector zeros(T, 12) for i=1:(N+1)]
+		u_ref = [@SVector zeros(T, 12) for i=1:(N+1)]
+		foot_locs = [@SVector zeros(T, 12) for i=1:(N+1)]
+		contacts = [@SVector zeros(T, 4) for i=1:(N+1)]
 
-		new{T, S}(x_ref, u_ref, foot_locs, contacts, times, n, m)
+		new{T, S}(x_ref, u_ref, foot_locs, contacts, times, woofer.inertial.body_inertia, woofer.inertial.sprung_mass)
 	end
 end
 
@@ -57,7 +57,7 @@ mutable struct OptimizerParams
 		X0 = [zeros(n) for i=1:(N+1)]
 		U0 = [zeros(m) for i=1:N]
 
-		model = Quadruped(dt, N, n, m)
+		model = Quadruped(dt, N)
 
 		constraints = ConstraintList(n,m,N)
 
