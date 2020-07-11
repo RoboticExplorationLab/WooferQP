@@ -1,4 +1,4 @@
-function control!(torques::Vector{T}, x_est::Vector{T}, t::T, joint_pos::Vector{T}, joint_vel::Vector{T}, param::ControllerParams) where {T<:Number}
+function control!(torques::AbstractVector{T}, x_est::AbstractVector{T}, t::T, joint_pos::AbstractVector{T}, joint_vel::Vector{T}, param::ControllerParams) where {T<:Number}
 	# get current leg positions
 	param.cur_foot_loc = ForwardKinematicsAll(joint_pos)
 
@@ -7,9 +7,9 @@ function control!(torques::Vector{T}, x_est::Vector{T}, t::T, joint_pos::Vector{
 	param.active_feet = param.gait.contact_phases[:, param.cur_phase]
 	coordinateExpander!(param.active_feet_12, param.active_feet)
 
-	R = QuatToRotMatrix(ThreeParamToQuat(x_est[4:6]))' # inertial -> body
-	v_b = R*x_est[7:9]
-	ω = R*x_est[10:12]
+	r = MRP(x_est[4:6]...)
+	v_b = r \ x_est[7:9] # inertial -> body
+	ω = x_est[10:12]
 
 	# swing leg
 	for i in 1:4

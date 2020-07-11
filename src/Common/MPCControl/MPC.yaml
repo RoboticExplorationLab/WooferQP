@@ -7,7 +7,7 @@ update_dt: 0.05
 N: 15
 q: [0.0, 0.0, 5e4, 1e3, 1e5, 1e3, 1e4, 1e4, 1e2, 1e2, 1e2, 1e4]
 r: [1e-2, 1e-2, 1e-4, 1e-2, 1e-2, 1e-4, 1e-2, 1e-2, 1e-4, 1e-2, 1e-2, 1e-4]
-solver: "OSQP" # "OSQP"
+solver: "ALTRO" # "OSQP"
 
 # Gait:
 gait:

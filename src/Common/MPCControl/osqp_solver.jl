@@ -54,7 +54,7 @@ function reference_trajectory!(x_curr::Vector{T}, param::ControllerParams) where
 	end
 end
 
-function foot_forces!(x_curr::AbstractVector, param::ControllerParams) where {T<:Number}
+function foot_forces!(x_curr::AbstractVector{T}, param::ControllerParams) where {T<:Number}
 	# x_ref: 12xN+1 matrix of state reference trajectory (where first column is x0)
 	# contacts: 4xN+1 matrix of foot contacts over the planning horizon
 	# foot_locs: 12xN+1 matrix of foot location in body frame over planning horizon

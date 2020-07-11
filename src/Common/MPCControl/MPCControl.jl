@@ -5,6 +5,7 @@ export
 
 using LinearAlgebra
 using StaticArrays
+using Rotations
 using ..QuadrupedDynamics
 using ForwardDiff
 import YAML
@@ -18,6 +19,5 @@ include("control.jl")
 include("swing_leg.jl")
 include("gait.jl")
 include("footsteps.jl")
-
 
 end

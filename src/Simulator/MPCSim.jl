@@ -9,7 +9,6 @@ include("XMLParser.jl")
 include("../Common/QuadrupedDynamics.jl")
 include("../Common/MPCControl/MPCControl.jl")
 include("../Common/Utilities.jl")
-include("../Common/Quaternions.jl")
 include("../Common/Config.jl")
 
 using .QuadrupedDynamics
@@ -141,10 +140,12 @@ function simulate()
 	               x[8:10] .= s.d.qvel[1:3]
 	               x[11:13] .= s.d.qvel[4:6]
 
+				   q = UnitQuaternion(s.d.qpos[4:7]...)
+
 	               x_true[1:3] .= s.d.qpos[1:3]
-	               x_true[4:6] .= s.d.qpos[5:7]
+	               x_true[4:6] .= Rotations.params(MRP(q))
 	               x_true[7:9] .= s.d.qvel[1:3]
-	               x_true[10:12] .= QuatToRotMatrix(s.d.qpos[4:7])'*s.d.qvel[4:6]
+	               x_true[10:12] .= q \ s.d.qvel[4:6]
 
 	               joint_pos   .= s.d.sensordata[7:18]
 	               joint_vel   .= s.d.sensordata[19:30]

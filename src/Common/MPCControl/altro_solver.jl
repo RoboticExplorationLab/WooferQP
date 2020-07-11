@@ -65,7 +65,7 @@ function TO.RobotDynamics.dynamics(model::Quadruped, x, u, t)
 	return x_dot
 end
 
-function reference_trajectory!(x_curr::Vector{T}, param::ControllerParams) where {T<:Number}
+function reference_trajectory!(x_curr::AbstractVector{T}, param::ControllerParams) where {T<:Number}
 	# TODO: integrate the x,y,ψ position from the reference
 	α = collect(range(0, 1, length=param.N+1))
 	# interpolate everything but x, y position
@@ -86,7 +86,7 @@ function reference_trajectory!(x_curr::Vector{T}, param::ControllerParams) where
 	end
 end
 
-function foot_forces!(x_curr::AbstractVector, param::ControllerParams) where {T<:Number}
+function foot_forces!(x_curr::AbstractVector{T}, param::ControllerParams) where {T<:Number}
 	# x_ref: 12xN+1 matrix of state reference trajectory (where first column is x0)
 	# contacts: 4xN+1 matrix of foot contacts over the planning horizon
 	# foot_locs: 12xN+1 matrix of foot location in body frame over planning horizon
