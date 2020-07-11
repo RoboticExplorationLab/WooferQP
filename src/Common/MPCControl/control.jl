@@ -62,9 +62,15 @@ function control!(torques::Vector{T}, x_est::Vector{T}, t::T, joint_pos::Vector{
 
 	if (t - param.last_t) >= param.mpc_update
 		# update MPC forces
+<<<<<<< HEAD:src/Common/MPCControl/control.jl
 		reference_trajectory!(x_est, param)
 		foot_history!(t, param)
 		foot_forces!(x_est, param)
+=======
+		generateReferenceTrajectory!(x_est, param)
+		constructFootHistory!(t, param)
+		solveFootForces!(x_est, param)
+>>>>>>> 9d9f19fb9c0755a817e833434e7a01e6f2e23af1:src/Common/MPCController.jl
 
 		println("X Velocity: ", x_est[7])
 
