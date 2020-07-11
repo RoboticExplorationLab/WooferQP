@@ -15,7 +15,7 @@ using .QuadrupedDynamics
 import .MPCControl
 
 function simulate()
-	woofer = WooferConfig("../Common/Woofer.yaml")
+    woofer = WooferConfig("../Common/Woofer.yaml")
 
     # Create the robot XML file
     ParseXML(woofer)
@@ -36,7 +36,7 @@ function simulate()
     d = s.d
     m = s.m
 
-	simulator_yaml = YAML.load(open("Simulator.yaml"))
+    simulator_yaml = YAML.load(open("Simulator.yaml"))
 
     # Initialize update rates
     ODRIVE_DT = simulator_yaml["simulator"]["odrive_dt"]
@@ -49,33 +49,33 @@ function simulate()
     last_mocap_t = 0.0
     last_buffer_update_t = 0.0
 
-	# CircularBuffer for simulating control latency
-	control_latency_frames = 1 # 1ms
+    # CircularBuffer for simulating control latency
+    control_latency_frames = 1 # 1ms
     control_buffer = CircularBuffer{Vector{Float64}}(control_latency_frames)
     fill!(control_buffer, zeros(12))
 
-	# CircularBuffer for simulating mocap latency
-	mocap_latency_frames = 1 # 1ms
-	init_mocap_measurement = [0, 0, 0.32, 1, zeros(3)...]
+    # CircularBuffer for simulating mocap latency
+    mocap_latency_frames = 1 # 1ms
+    init_mocap_measurement = [0, 0, 0.32, 1, zeros(3)...]
     mocap_buffer = CircularBuffer{Vector{Float64}}(mocap_latency_frames)
     fill!(mocap_buffer, init_mocap_measurement)
 
-	# CircularBuffer for simulating measurement latency
-	joint_latency_frames = 1 # 1ms
-	init_joint_measurement = zeros(24)
+    # CircularBuffer for simulating measurement latency
+    joint_latency_frames = 1 # 1ms
+    init_joint_measurement = zeros(24)
     joint_buffer = CircularBuffer{Vector{Float64}}(joint_latency_frames)
     fill!(joint_buffer, init_joint_measurement)
 
 
-	# Allocate everything once
-	# true state information
-	x = zeros(13)
-	x_true = zeros(12)
-	joint_pos = zeros(12)
-	joint_vel = zeros(12)
-	contacts = zeros(4)
+    # Allocate everything once
+    # true state information
+    x = zeros(13)
+    x_true = zeros(12)
+    joint_pos = zeros(12)
+    joint_vel = zeros(12)
+    contacts = zeros(4)
 
-	param = MPCControl.ControllerParams("../Common/MPCControl/MPC.yaml")
+    param = MPCControl.ControllerParams("../Common/MPCControl/MPC.yaml")
 
     # Loop until the user closes the window
     WooferSim.alignscale(s)
@@ -118,11 +118,11 @@ function simulate()
                 # Check if it's time to update the delay buffers for control, joint pos/vel, and mocap
                 if (t - last_buffer_update_t) > BUFFER_UPDATE_DT
                     # Add lagged motion capture data
-					push!(mocap_buffer, s.d.qpos[1:7])
+                    push!(mocap_buffer, s.d.qpos[1:7])
                     lagged_mocap = popfirst!(mocap_buffer)
 
                     # Add lagged joint pos/vel data
-					push!(joint_buffer, s.d.sensordata[7:30])
+                    push!(joint_buffer, s.d.sensordata[7:30])
                     lagged_joint = popfirst!(joint_buffer)
 
                     # Add lagged torques
@@ -134,31 +134,50 @@ function simulate()
 
                 # Publish simulation data LCM message. Sim data does not include any latency effects
                 if t - last_sim_data_t > SIM_DATA_DT
-					# ground truth states
-	               x[1:3] .= s.d.qpos[1:3]
-	               x[4:7] .= s.d.qpos[4:7]
-	               x[8:10] .= s.d.qvel[1:3]
-	               x[11:13] .= s.d.qvel[4:6]
+                    # ground truth states
+                    x[1:3] .= s.d.qpos[1:3]
+                    x[4:7] .= s.d.qpos[4:7]
+                    x[8:10] .= s.d.qvel[1:3]
+                    x[11:13] .= s.d.qvel[4:6]
 
-				   q = UnitQuaternion(s.d.qpos[4:7]...)
+                    q = UnitQuaternion(s.d.qpos[4:7]...)
 
-	               x_true[1:3] .= s.d.qpos[1:3]
-	               x_true[4:6] .= Rotations.params(MRP(q))
-	               x_true[7:9] .= s.d.qvel[1:3]
-	               x_true[10:12] .= q \ s.d.qvel[4:6]
+                    x_true[1:3] .= s.d.qpos[1:3]
+                    x_true[4:6] .= Rotations.params(MRP(q))
+                    x_true[7:9] .= s.d.qvel[1:3]
+                    x_true[10:12] .= q \ s.d.qvel[4:6]
 
-	               joint_pos   .= s.d.sensordata[7:18]
-	               joint_vel   .= s.d.sensordata[19:30]
+                    joint_pos .= s.d.sensordata[7:18]
+                    joint_vel .= s.d.sensordata[19:30]
 
-				   MPCControl.control!(actuator_torques, x_true, t, joint_pos, joint_vel, param)
-                   s.d.ctrl .= actuator_torques
+                    try
+                        MPCControl.control!(
+                            actuator_torques,
+                            x_true,
+                            t,
+                            joint_pos,
+                            joint_vel,
+                            param,
+                        )
+                    catch err
+                        for (exc, bt) in Base.catch_stack()
+                           showerror(stdout, exc, bt)
+                           println()
+                        end
 
-				   last_sim_data_t = t
+                        GLFW.DestroyWindow(s.window)
+
+                        return
+                    end
+
+                    s.d.ctrl .= actuator_torques
+
+                    last_sim_data_t = t
                 end
 
                 # # Publish mocap data at rate determined by MOCAP_DT. Includes latency
                 # if (t - last_mocap_t) > MOCAP_DT
-				#
+                #
                 # end
 
                 s.d.ctrl .= lagged_control
