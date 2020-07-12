@@ -180,7 +180,7 @@ function simulate()
                 #
                 # end
 
-                s.d.ctrl .= lagged_control
+                # s.d.ctrl .= lagged_control
                 mj_step(s.m, s.d)
 
                 # Break on reset

@@ -18,6 +18,7 @@ function foot_trajectory(v0::AbstractVector{T}, v1::AbstractVector{T}, t0::T, tf
 	b_x = [foot_loc_cur[1], param.next_foot_loc[3*(i-1)+1], v0[1], v1[1]]
 	b_y = [foot_loc_cur[2], param.next_foot_loc[3*(i-1)+2], v0[2], v1[2]]
 
+	# FIXME: singular exception here?
 	param.swing.foot_trajectories[1:4, i] 	.= A\b_x
 	param.swing.foot_trajectories[5:8, i] 	.= A\b_y
 
