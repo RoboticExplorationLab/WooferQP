@@ -26,7 +26,7 @@ foot_dy: 0.0
 
 # Swing Parameters
 swing:
-  step_height: -0.225 # distance below body of foot during swing
+  step_height: -0.225 # distance of foot below body during swing
   omega: 100 # natural frequency of PD
   zeta: 1 # damping of PD
 

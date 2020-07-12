@@ -79,18 +79,28 @@ mutable struct ControllerParams
 			nom_foot_loc[LegIndexToRange(i)] += [Δx, Δy*offset[i], 0]
 		end
 
+		μ = data["mu"]
+		min_vert_force = data["min_vert_force"]
+		max_vert_force = data["max_vert_force"]
+
 		if using_altro
 			optimizer = OptimizerParams(	data["dynamics_discretization"],
 											N,
 											data["q"],
 											data["r"],
-											x_des
+											x_des,
+											μ,
+											min_vert_force,
+											max_vert_force
 										)
 		else
 			optimizer = OptimizerParams(	data["dynamics_discretization"],
 											N,
 											data["q"],
-											data["r"]
+											data["r"],
+											μ,
+											min_vert_force,
+											max_vert_force
 										)
 		end
 

@@ -41,12 +41,18 @@ mutable struct OptimizerParams
 	Q
 	R
 
-	function OptimizerParams(dt::Float64, N::Int64, q::Vector{Float64}, r::Vector{Float64}, x_des::Vector{Float64}; n::Int64=12, m::Int64=12)
-		# constants
-		μ = 0.7
-		min_vert_force = 0.0
-		max_vert_force = 133.0
-
+	function OptimizerParams(
+							    dt::T,
+							    N::Integer,
+							    q::Vector{T},
+							    r::Vector{T},
+							    x_des::Vector{T},
+							    μ::T,
+							    min_vert_force::T,
+							    max_vert_force::T;
+							    n::Integer = 12,
+							    m::Integer = 12,
+							) where {T<:Number}
 		Q = Diagonal(SVector{n}(q))
 		R = Diagonal(SVector{m}(r))
 
