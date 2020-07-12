@@ -37,10 +37,7 @@ function LinearizedContinuousDynamicsB(x::SVector{n, T}, u::SVector{m, T}, r, co
 end
 
 function TO.RobotDynamics.dynamics(model::Quadruped, x, u, t)
-	k::Int64 = searchsortedfirst(model.times, t)
-	if model.times[k] != t
-		k -= 1
-	end
+	k = trunc(Integer, t/model.dt) + 1
 
 	A = LinearizedContinuousDynamicsA(model.x_ref[k], model.u_ref[k], model.foot_locs[k], model.contacts[k], model.J, model.sprung_mass)
 	B = LinearizedContinuousDynamicsB(model.x_ref[k], model.u_ref[k], model.foot_locs[k], model.contacts[k], model.J, model.sprung_mass)
