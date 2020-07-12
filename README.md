@@ -21,17 +21,20 @@ echo 'export MUJOCO_KEY_PATH=[YOUR PATH]/mjkey.txt' >> ~/.bash_profile
 
 4. Clone this repository.
 
-5. Enter the Package Manager by typing the `]` key and activate the environment with
+5. Enter the julia REPL through the command line.
+
+6. Enter the Package Manager by typing the `]` key and activate the environment with
 ```shell
 pkg> activate .
 ```
 
-6. Install MuJoCo.jl while still in the Package Manager with  
+7. Install MuJoCo.jl while still in the Package Manager with  
 ```shell
 pkg> add https://github.com/klowrey/MuJoCo.jl
+pkg> build MuJoCo
 ```
 
-7. Then instantiate the environment, which should download all other dependencies.
+8. Then instantiate the environment, which should download all other dependencies.
 ```shell
 pkg> instantiate
 ```
