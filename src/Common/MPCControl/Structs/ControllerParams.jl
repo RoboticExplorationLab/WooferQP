@@ -74,7 +74,7 @@ mutable struct ControllerParams
 		nom_foot_loc = ForwardKinematicsAll(zeros(12))
 		offset = [1 -1 1 -1]
 		Δx = data["foot_dx"]
-		Δy = data["foot_dx"]
+		Δy = data["foot_dy"]
 		for i=1:4
 			nom_foot_loc[LegIndexToRange(i)] += [Δx, Δy*offset[i], 0]
 		end

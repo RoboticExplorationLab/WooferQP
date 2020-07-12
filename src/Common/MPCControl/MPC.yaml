@@ -1,4 +1,5 @@
 # MPC Parameters:
+# xy_vel: [0.0, 0.0]
 xy_vel: [0.3, 0.0]
 omega_z: 0.0
 stance_height: 0.28
@@ -6,8 +7,10 @@ dynamics_discretization: 0.05
 update_dt: 0.05
 N: 15
 q: [0.0, 0.0, 5e4, 1e5, 1e5, 1e4, 1e4, 1e4, 1e2, 1e2, 1e2, 1e4]
+# q: [1e4, 1e4, 5e4, 1e5, 1e5, 1e4, 1e4, 1e4, 1e2, 1e2, 1e2, 1e4]
 r: [1e-2, 1e-2, 1e-4, 1e-2, 1e-2, 1e-4, 1e-2, 1e-2, 1e-4, 1e-2, 1e-2, 1e-4]
-solver: "ALTRO" # "OSQP"
+solver: "OSQP"
+# solver: "ALTRO"
 
 mu: 0.7
 min_vert_force: 0.0
