@@ -17,7 +17,7 @@ gait:
 
 # Foot Placement:
 foot_dx: 0.0
-foot_dy: 0.025
+foot_dy: 0.0
 
 # Swing Parameters
 swing:
