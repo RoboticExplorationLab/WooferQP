@@ -59,20 +59,20 @@ struct OptimizerParams{T,S}
 
 
         # terminal state cost
-        objective = @expression (x[select12(N + 1)] - x_ref_param[N+1])' *
+        objective = @expression transpose(x[select12(N + 1)] - x_ref_param[N+1]) *
                     Q_f *
                     (x[select12(N + 1)] - x_ref_param[N+1])
 
         for i = 1:N
             # stagewise state penalty
             objective = @expression objective +
-                        (x[select12(i)] - x_ref_param[i])' *
+                        transpose(x[select12(i)] - x_ref_param[i]) *
                         Q_i *
                         (x[select12(i)] - x_ref_param[i])
 
             #stagewise control penalty
             objective = @expression objective +
-                        (u[select12(i)] - u_ref_param[i])' *
+                        transpose(u[select12(i)] - u_ref_param[i]) *
                         R_i *
                         (u[select12(i)] - u_ref_param[i])
         end
@@ -81,16 +81,6 @@ struct OptimizerParams{T,S}
 
         # Dynamics constraint:
         @constraint(model, x[select12(1)] == x_ref_param[1])
-
-        exp = @expression x[select12(1 + 1)] ==
-                    A_d_param[1] * x[select12(1)] - A_d_param[1] * x_ref_param[1] +
-                    B_d_param[1] * u[select12(1)] - B_d_param[1] * u_ref_param[1] +
-                    d_d_param[1]
-
-        # Parametron.findallocs(exp)
-
-        Parametron.findallocs(objective)
-
         for i = 1:(N)
             @constraint(
                 model,
