@@ -51,8 +51,8 @@ function ParseXML(woofer::WooferConfig; μ = 1.5, Δt = 0.0001)
     woofer_force_noise = 0
 
     ## FILE PATHS  ##
-    in_file = "woofer.xml"
-    out_file = "woofer_out.xml"
+    in_file = joinpath(@__DIR__, "woofer.xml")
+    out_file = joinpath(@__DIR__, "woofer_out.xml")
 
     ## Parse the xml ##
     print("Parsing MuJoCo XML file:")

@@ -15,12 +15,12 @@ using .QuadrupedDynamics
 import .MPCControl
 
 function simulate()
-    woofer = WooferConfig("../Common/Woofer.yaml")
+    woofer = WooferConfig()
 
     # Create the robot XML file
     ParseXML(woofer)
     # Get model from local directory
-    s = loadmodel("woofer_out.xml", 1200, 900)
+    s = loadmodel(joinpath(@__DIR__, "woofer_out.xml"), 1200, 900)
 
     # Pre-allocate memory for time-delayed torques, joint pos/vel, and mocap data
     lagged_control = zeros(12)
@@ -36,7 +36,7 @@ function simulate()
     d = s.d
     m = s.m
 
-    simulator_yaml = YAML.load(open("Simulator.yaml"))
+    simulator_yaml = YAML.load(open(joinpath(@__DIR__, "Simulator.yaml")))
 
     # Initialize update rates
     ODRIVE_DT = simulator_yaml["simulator"]["odrive_dt"]
