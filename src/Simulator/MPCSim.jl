@@ -75,18 +75,7 @@ function simulate()
     joint_vel = zeros(12)
     contacts = zeros(4)
 
-    # try
     param = MPCControl.ControllerParams()
-    # catch err
-    #     for (exc, bt) in Base.catch_stack()
-    #        showerror(stdout, exc, bt)
-    #        println()
-    #     end
-    #
-    #     GLFW.DestroyWindow(s.window)
-    #
-    #     return
-    # end
 
     # Loop until the user closes the window
     WooferSim.alignscale(s)

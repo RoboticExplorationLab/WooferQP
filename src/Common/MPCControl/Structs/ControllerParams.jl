@@ -97,13 +97,11 @@ mutable struct ControllerParams
 			optimizer = OptimizerParams(	data["dynamics_discretization"],
 											N,
 											data["q"],
-											data["r"]
+											data["r"],
+											μ,
+											min_vert_force,
+											max_vert_force
 										)
-
-			# add_objective!(optimizer)
-			# add_control_constraints!(optimizer, μ, min_vert_force, max_vert_force)
-			# add_dynamics_constraints!(optimizer)
-			populate_model!(optimizer, μ, min_vert_force, max_vert_force)
 		end
 
 		gait_type = data["gait"]["type"]

@@ -37,42 +37,34 @@ function NonLinearContinuousDynamics(
     return [x_d_1_3; x_d_4_6; x_d_7_9; x_d_10_12]
 end
 
-function LinearizedDiscreteDynamicsA(
+function LinearizedContinuousDynamicsA(
     x::SVector{n,T},
     u::SVector{m,T},
     r,
     contacts,
     J,
-    sprung_mass,
-    dt
+    sprung_mass
 )::SMatrix{n,n,T,n * n} where {T,n,m}
-    A_c = ForwardDiff.jacobian(
+    return ForwardDiff.jacobian(
         (x_var) ->
             NonLinearContinuousDynamics(x_var, u, r, contacts, J, sprung_mass),
         x,
     )
-
-    # Euler Discretization
-    I_static = SMatrix{12,12,T}(I)
-    return I_static + A_c*dt
 end
 
-function LinearizedDiscreteDynamicsB(
+function LinearizedContinuousDynamicsB(
     x::SVector{n,T},
     u::SVector{m,T},
     r,
     contacts,
     J,
-    sprung_mass,
-    dt
+    sprung_mass
 )::SMatrix{n,m,T,n * m} where {T,n,m}
-    B_c = ForwardDiff.jacobian(
+    return ForwardDiff.jacobian(
         (u_var) ->
             NonLinearContinuousDynamics(x, u_var, r, contacts, J, sprung_mass),
         u,
     )
-
-    return B_c*dt
 end
 
 function reference_trajectory!(
@@ -116,17 +108,21 @@ function foot_forces!(
     dt = opt.dt
 
     for i = 1:N
-        opt.x_ref[i] = SVector{12}(param.x_ref[:, i])
-        opt.foot_locs[i] = SVector{12}(param.foot_locs[:, i])
-        opt.contacts[i] = SVector{4}(param.contacts[:, i])
+        opt.x_ref[i][] = SVector{12}(param.x_ref[:, i])
 
-        Parametron.setdirty!(opt.model.params[i])
-        Parametron.setdirty!(opt.model.params[i+N+1])
-        Parametron.setdirty!(opt.model.params[i+2*N+1])
-        Parametron.setdirty!(opt.model.params[i+3*N+1])
+		foot_locs_static = SVector{12}(param.foot_locs[:, i])
+		contacts_static = SVector{4}(param.contacts[:, i])
+
+        A_c_i = LinearizedContinuousDynamicsA(opt.x_ref[i][], opt.u_ref[i][], foot_locs_static, contacts_static, opt.J, opt.sprung_mass)
+		B_c_i = LinearizedContinuousDynamicsB(opt.x_ref[i][], opt.u_ref[i][], foot_locs_static, contacts_static, opt.J, opt.sprung_mass)
+		d_c_i = NonLinearContinuousDynamics(opt.x_ref[i][], opt.u_ref[i][], foot_locs_static, contacts_static, opt.J, opt.sprung_mass)
+
+		# Euler Discretization
+		param.optimizer.A_d[i][] = oneunit(SMatrix{12,12,T}) + A_c_i*dt
+		param.optimizer.B_d[i][] = B_c_i*dt
+		param.optimizer.d_d[i][] = d_c_i*dt + opt.x_ref[i][]
     end
-    opt.x_ref[N+1] = SVector{12}(param.x_ref[select12(N)])
-    Parametron.setdirty!(opt.model.params[N+1])
+    opt.x_ref[N+1][] = SVector{12}(param.x_ref[:, N+1])
 
     @time solve!(opt.model)
 
