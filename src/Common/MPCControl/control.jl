@@ -64,7 +64,8 @@ function control!(torques::AbstractVector{T}, x_est::AbstractVector{T}, t::T, jo
 		# update MPC forces
 		reference_trajectory!(x_est, param)
 		foot_history!(t, param)
-		@time foot_forces!(x_est, param)
+		# @time foot_forces!(x_est, param)
+		foot_forces!(x_est, param)
 
 		println("X Velocity: ", x_est[7])
 

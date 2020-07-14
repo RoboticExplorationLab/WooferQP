@@ -37,8 +37,8 @@ mutable struct ControllerParams
 	gait::GaitParams
 	swing::SwingLegParams
 
-	function ControllerParams(path::String)
-		data = YAML.load(open(path))
+	function ControllerParams()
+		data = YAML.load(open(joinpath(@__DIR__, "../MPC.yaml")))
 		N = data["N"]
 
 		mpc_torques = zeros(12)
@@ -97,11 +97,13 @@ mutable struct ControllerParams
 			optimizer = OptimizerParams(	data["dynamics_discretization"],
 											N,
 											data["q"],
-											data["r"],
-											μ,
-											min_vert_force,
-											max_vert_force
+											data["r"]
 										)
+
+			# add_objective!(optimizer)
+			# add_control_constraints!(optimizer, μ, min_vert_force, max_vert_force)
+			# add_dynamics_constraints!(optimizer)
+			populate_model!(optimizer, μ, min_vert_force, max_vert_force)
 		end
 
 		gait_type = data["gait"]["type"]

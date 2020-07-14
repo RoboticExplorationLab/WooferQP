@@ -1,53 +1,25 @@
-using StaticArrays
 using LinearAlgebra
+using StaticArrays
+using Rotations
 using Parametron
-using OSQP
+import YAML
 
+include("../src/Simulator/XMLParser.jl")
+include("../src/Common/QuadrupedDynamics.jl")
+include("../src/Common/MPCControl/MPCControl.jl")
+include("../src/Common/Utilities.jl")
 include("../src/Common/Config.jl")
-include("../src/Common/Quaternions.jl")
-include("../src/Common/Structs/QPParams.jl")
-include("../src/Common/Structs/SwingLegParams.jl")
-include("../src/Common/Structs/GaitParams.jl")
-include("../src/Common/Structs/ControllerParams.jl")
-include("../src/Common/QPSolverSparse.jl")
-include("../src/Common/SwingLegController.jl")
-include("../src/Common/Gait.jl")
-include("../src/Common/FootstepPlanner.jl")
 
-dt = 0.05
-mpc_update = 0.001
-N = 15
+using .QuadrupedDynamics
+import .MPCControl
 
-q = [0, 0, 5e4, 1e3, 1e5, 1e3, 1e4, 1e4, 1e2, 1e2, 1e2, 1e4]
-r = [1e-2, 1e-2, 1e-4, 1e-2, 1e-2, 1e-4, 1e-2, 1e-2, 1e-4, 1e-2, 1e-2, 1e-4]
+param = MPCControl.ControllerParams()
 
-x_des = [0, 0, 0.32, 0.00, 0.00, 0.00, 0.00, 0.00, 0.0, 0.0, 0.00, 0]
-x0 = [0.0, 0, 0.32, 0.0, 0.0, 0.00, 0.00, 0.00, 0.0, 0.0, 0.00, 0]
+x_est = [0.0, 0.0, 0.28, 0.1, 0.0, 0.2, -0.01, 0.01, 0.05, 0.01, 0.02, 0.03]
 
-use_lqr = false # use lqr in cost to go
-vel_ctrl = false # integrate positions, interpolate velocities
-
-
-swing = SwingLegParams(-0.20, 100, 1)
-gait = createTrotGait(stance_time=0.15, swing_time=0.15)
-optimizer = OptimizerParams(dt, N, q, r)
-param = ControllerParams(N, mpc_update, x_des, use_lqr, vel_ctrl, zeros(12), optimizer, gait, swing)
-
-x_ref = zeros(12, N+1)
-
-generateReferenceTrajectory!(x0, param)
-
-contacts = zeros(Int64, 4, N)
-foot_locs = zeros(12, N)
-
-α = zeros(12)
-
-cur_foot_loc = ForwardKinematicsAll(α)
-
+MPCControl.reference_trajectory!(x_est, param)
 t = 0.0
-
-constructFootHistory!(t, param)
-
-solveFootForces!(param)
+MPCControl.foot_history!(t, param)
+MPCControl.foot_forces!(x_est, param)
 
 param.forces

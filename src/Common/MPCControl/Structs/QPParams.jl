@@ -1,106 +1,138 @@
-struct OptimizerParams
+struct OptimizerParams{T, S}
     # discretization length
-    dt::Float64
+    dt::T
 
     # planning horizon length
-    N::Int64
+    N::S
 
     # Parametron Variables:
     model::Model
-    x::Array{Variable,1}
-    u::Array{Variable,1}
+    x::Vector{Variable}
+    u::Vector{Variable}
 
     # Parameter Values (to be updated in place)
-    x_ref_reshaped::Vector{Float64}
-    u_ref::Vector{Float64}
-    A_d::Array{Array{Float64,2},1}
-    B_d::Array{Array{Float64,2},1}
-    d_d::Array{Array{Float64,1},1}
-    Q::Array{Float64,2}
-    R::Array{Float64,2}
+    x_ref::Vector{SVector{12, T}}
+    u_ref::Vector{SVector{12, T}}
+    foot_locs::Vector{SVector{12, T}}
+    contacts::Vector{SVector{4, T}}
+    Q_f::Diagonal
+    Q_i::Diagonal
+    R_i::Diagonal
 
     function OptimizerParams(
         dt::T,
-        N::Integer,
+        N::S,
         q::Vector{T},
-        r::Vector{T},
-        μ::T,
-        min_vert_force::T,
-        max_vert_force::T;
+        r::Vector{T};
         n::Integer = 12,
         m::Integer = 12,
-    ) where {T<:Number}
+    ) where {T<:Number, S<:Integer}
         # initialize model and variables
         model = Model(OSQP.Optimizer(verbose = false))
         x = [Variable(model) for _ = 1:((N+1)*n)]
         u = [Variable(model) for _ = 1:((N)*n)]
 
         # initialize quadratic cost parameters
-        Q = Diagonal(repeat(q, N + 1))
-        R = Diagonal(repeat(r, N))
+        Q_f = Diagonal(SVector{n}(q))
+        Q_i = Diagonal(SVector{n}(q))
+        R_i = Diagonal(SVector{m}(r))
 
-        x_ref_reshaped = zeros((N + 1) * n)
-        u_ref = zeros((N) * n)
+        x_ref = [@SVector zeros(n) for _ = 1:(N + 1)]
+        u_ref = [@SVector zeros(m) for _ = 1:(N)]
+        foot_locs = [@SVector zeros(12) for _ = 1:(N)]
+        contacts = [@SVector zeros(4) for _ = 1:(N)]
 
-        A_d = [zeros(n, n) for i = 1:N]
-        B_d = [zeros(n, m) for i = 1:N]
-        d_d = [zeros(n) for i = 1:N]
+        new{T, S}(dt, N, model, x, u, x_ref, u_ref, foot_locs, contacts, Q_f, Q_i, R_i)
+    end
+end
 
-        Q_param = Parameter(() -> Q, model)
-        R_param = Parameter(() -> R, model)
+function populate_model!(opt::OptimizerParams, μ, min_vert_force, max_vert_force)
+    x_ref_param = [Parameter(()->opt.x_ref[i], opt.model) for i=1:(opt.N+1)]
+    u_ref_param = [Parameter(()->opt.u_ref[i], opt.model) for i=1:(opt.N)]
+    foot_locs_param = [Parameter(()->opt.foot_locs[i], opt.model) for i=1:(opt.N)]
+    contacts_param = [Parameter(()->opt.contacts[i], opt.model) for i=1:(opt.N)]
 
-        x_ref_param = Parameter(() -> x_ref_reshaped, model)
-        u_ref_param = Parameter(() -> u_ref, model)
+    add_objective!(opt, x_ref_param, u_ref_param)
+    add_control_constraints!(opt, μ, min_vert_force, max_vert_force)
+    add_dynamics_constraints!(opt, x_ref_param, u_ref_param, foot_locs_param, contacts_param)
+end
 
-        A_d_param = [Parameter(() -> A_d[i], model) for i = 1:N]
-        B_d_param = [Parameter(() -> B_d[i], model) for i = 1:N]
-        d_d_param = [Parameter(() -> d_d[i], model) for i = 1:N]
+function add_objective!(opt::OptimizerParams, x_ref, u_ref)
+    N = opt.N
+    model = opt.model
+    x = opt.x
+    u = opt.u
 
-        # objective
-        @objective(
-            model,
-            Minimize,
-            transpose(x - x_ref_param) * Q_param * (x - x_ref_param) +
-            transpose(u - u_ref_param) * R_param * (u - u_ref_param)
-        )
+    # terminal state cost
+    objective = @expression (x[select12(N+1)] - x_ref[N+1])'*opt.Q_f*(x[select12(N+1)] - x_ref[N+1])
 
-        # define all constraints
-        @constraint(model, x[select12(0)] == x_ref_param[select12(0)])
-        for i = 0:N-1
-            # Control constraints
-            for j = 1:4
-                # convert absolute value constraint to linear inequality:
-                @constraint(
-                    model,
-                    u[select12_3(i, j, 1)] <= μ * u[select12_3(i, j, 3)]
-                )
-                @constraint(
-                    model,
-                    u[select12_3(i, j, 1)] >= -μ * u[select12_3(i, j, 3)]
-                )
-                @constraint(
-                    model,
-                    u[select12_3(i, j, 2)] <= μ * u[select12_3(i, j, 3)]
-                )
-                @constraint(
-                    model,
-                    u[select12_3(i, j, 2)] >= -μ * u[select12_3(i, j, 3)]
-                )
+    for i=1:N
+        # stagewise state penalty
+        objective = @expression objective + (x[select12(i)] - x_ref[i])'*opt.Q_i*(x[select12(i)] - x_ref[i])
 
-                @constraint(model, u[select12_3(i, j, 3)] >= min_vert_force)
-                @constraint(model, u[select12_3(i, j, 3)] <= max_vert_force)
-            end
+        #stagewise control penalty
+        objective = @expression objective + (u[select12(i)] - u_ref[i])'*opt.R_i*(u[select12(i)] - u_ref[i])
+    end
 
-            # Dynamics constraints
+    @objective(model, Minimize, objective)
+end
+
+function add_control_constraints!(opt::OptimizerParams, μ::Number, min_vert_force::Number, max_vert_force::Number)
+    model = opt.model
+    u = opt.u
+    N = opt.N
+
+    for i = 1:N
+        # Control constraints
+        for j = 1:4
+            # convert absolute value constraint to linear inequality:
             @constraint(
                 model,
-                x[select12(i + 1)] ==
-                A_d_param[i+1] * (x[select12(i)] - x_ref_param[select12(i)]) +
-                B_d_param[i+1] * (u[select12(i)] - u_ref_param[select12(i)]) +
-                d_d_param[i+1]
+                u[select12_3(i, j, 1)] <= μ * u[select12_3(i, j, 3)]
             )
-        end
+            @constraint(
+                model,
+                u[select12_3(i, j, 1)] >= -μ * u[select12_3(i, j, 3)]
+            )
+            @constraint(
+                model,
+                u[select12_3(i, j, 2)] <= μ * u[select12_3(i, j, 3)]
+            )
+            @constraint(
+                model,
+                u[select12_3(i, j, 2)] >= -μ * u[select12_3(i, j, 3)]
+            )
 
-        new(dt, N, model, x, u, x_ref_reshaped, u_ref, A_d, B_d, d_d, Q, R)
+            @constraint(model, u[select12_3(i, j, 3)] >= min_vert_force)
+            @constraint(model, u[select12_3(i, j, 3)] <= max_vert_force)
+        end
+    end
+end
+
+function add_dynamics_constraints!(opt::OptimizerParams, x_ref, u_ref, foot_locs, contacts)
+    model = opt.model
+    x = opt.x
+    u = opt.u
+    J = woofer.inertial.body_inertia
+    sprung_mass = woofer.inertial.sprung_mass
+    dt = opt.dt
+    N = opt.N
+
+    @constraint(
+        model,
+        x[select12(1)] == x_ref[1]
+    )
+    for i=1:(N)
+        A_d = Parameter(() -> LinearizedDiscreteDynamicsA(x_ref[i](), u_ref[i](), foot_locs[i](), contacts[i](), J, sprung_mass, dt), model)
+        B_d = Parameter(() -> LinearizedDiscreteDynamicsB(x_ref[i](), u_ref[i](), foot_locs[i](), contacts[i](), J, sprung_mass, dt), model)
+        d_d = Parameter(() -> NonLinearContinuousDynamics(x_ref[i](), u_ref[i](), foot_locs[i](), contacts[i](), J, sprung_mass)*dt + x_ref[i](), model)
+
+        @constraint(
+            model,
+            x[select12(i + 1)] ==
+            A_d * (x[select12(i)] - x_ref[i]) +
+            B_d * (u[select12(i)] - u_ref[i]) +
+            d_d
+        )
     end
 end
