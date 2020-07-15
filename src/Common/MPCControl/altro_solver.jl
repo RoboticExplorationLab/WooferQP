@@ -98,11 +98,3 @@ function foot_forces!(x_curr::AbstractVector{T}, param::ControllerParams) where 
 
 	param.forces .= opt.U0[1]
 end
-
-function select12(i)
-	return (12*i+1):(12*i+12)
-end
-
-function select12_3(i,j,k)
-	return 12*i+3*(j-1)+k
-end

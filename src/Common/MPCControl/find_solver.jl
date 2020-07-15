@@ -6,7 +6,7 @@ if data["solver"] == "ALTRO"
 	const using_altro = true
 
 	using TrajectoryOptimization
-	using ALTRO
+	using Altro
 
 	const TO = TrajectoryOptimization
 

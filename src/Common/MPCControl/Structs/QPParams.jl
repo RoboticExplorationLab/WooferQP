@@ -59,9 +59,10 @@ struct OptimizerParams{T,S}
 
 
         # terminal state cost
-        objective = @expression transpose(x[select12(N + 1)] - x_ref_param[N+1]) *
-                    Q_f *
-                    (x[select12(N + 1)] - x_ref_param[N+1])
+        objective =
+            @expression transpose(x[select12(N + 1)] - x_ref_param[N+1]) *
+                        Q_f *
+                        (x[select12(N + 1)] - x_ref_param[N+1])
 
         for i = 1:N
             # stagewise state penalty
@@ -79,6 +80,9 @@ struct OptimizerParams{T,S}
 
         @objective(model, Minimize, objective)
 
+        println("Objective constraint allocations: ")
+        Parametron.findallocs(objective)
+
         # Dynamics constraint:
         @constraint(model, x[select12(1)] == x_ref_param[1])
         for i = 1:(N)
@@ -90,6 +94,14 @@ struct OptimizerParams{T,S}
                 d_d_param[i]
             )
         end
+
+        dynamics_exp = @expression x[select12(1 + 1)] ==
+                    A_d_param[1] * (x[select12(1)] - x_ref_param[1]) +
+                    B_d_param[1] * (u[select12(1)] - u_ref_param[1]) +
+                    d_d_param[1]
+
+        println("Dynamics Constraint allocations: ")
+        Parametron.findallocs(dynamics_exp)
 
         # Control Constraints
         for i = 1:N
@@ -118,12 +130,19 @@ struct OptimizerParams{T,S}
             end
         end
 
+        println("Control Constraint allocations: ")
+        control_constraint = @expression u[select12_3(1, 1, 2)] + μ * u[select12_3(1, 1, 3)]
+        Parametron.findallocs(control_constraint)
+
         ref_arr_x = [x_ref_param[i].val for i = 1:(N+1)]
         ref_arr_u = [u_ref_param[i].val for i = 1:(N)]
 
         ref_arr_A_d = [A_d_param[i].val for i = 1:(N)]
         ref_arr_B_d = [B_d_param[i].val for i = 1:(N)]
         ref_arr_d_d = [d_d_param[i].val for i = 1:(N)]
+
+        J = woofer.inertial.body_inertia
+        sprung_mass = woofer.inertial.sprung_mass
 
         new{T,S}(
             dt,
@@ -139,8 +158,8 @@ struct OptimizerParams{T,S}
             ref_arr_A_d,
             ref_arr_B_d,
             ref_arr_d_d,
-            woofer.inertial.body_inertia,
-            woofer.inertial.sprung_mass,
+            J,
+            sprung_mass,
         )
     end
 end
