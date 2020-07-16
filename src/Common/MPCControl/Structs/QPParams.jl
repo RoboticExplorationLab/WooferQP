@@ -22,6 +22,9 @@ struct OptimizerParams{T,S}
     B_d::Vector{Base.RefValue{SMatrix{12,12,T,144}}}
     d_d::Vector{Base.RefValue{SVector{12,T}}}
 
+    q::Vector{Base.RefValue{SVector{12,T}}}
+    r::Vector{Base.RefValue{SVector{12,T}}}
+
     J::SMatrix{3,3,T,9}
     sprung_mass::T
 
@@ -57,31 +60,32 @@ struct OptimizerParams{T,S}
             [Parameter(model, val = zero(SMatrix{12,12,T})) for _ = 1:(N)]
         d_d_param = [Parameter(model, val = zero(SVector{12,T})) for _ = 1:(N)]
 
+        q_param = [Parameter(model, val = zero(SVector{12,T})) for _ = 1:(N+1)]
+        r_param = [Parameter(model, val = zero(SVector{12,T})) for _ = 1:(N)]
 
         # terminal state cost
-        objective =
-            @expression transpose(x[select12(N + 1)] - x_ref_param[N+1]) *
-                        Q_f *
-                        (x[select12(N + 1)] - x_ref_param[N+1])
-
-        for i = 1:N
-            # stagewise state penalty
-            objective = @expression objective +
-                        transpose(x[select12(i)] - x_ref_param[i]) *
-                        Q_i *
-                        (x[select12(i)] - x_ref_param[i])
-
-            #stagewise control penalty
-            objective = @expression objective +
-                        transpose(u[select12(i)] - u_ref_param[i]) *
-                        R_i *
-                        (u[select12(i)] - u_ref_param[i])
-        end
-
-        @objective(model, Minimize, objective)
+        objective = @expression transpose(x[select12(N + 1)]) *
+                    Q_f *
+                    (x[select12(N + 1)]) -
+                    transpose(q_param[N+1]) * x[select12(N + 1)]
 
         println("Objective constraint allocations: ")
         Parametron.findallocs(objective)
+
+        for i = 1:N
+            # stagewise state penalty
+
+            objective = @expression objective +
+                        transpose(x[select12(i)]) * Q_i * (x[select12(i)]) -
+                        transpose(q_param[i]) * x[select12(i)]
+
+            #stagewise control penalty
+            objective = @expression objective +
+                        transpose(u[select12(i)]) * R_i * (u[select12(i)]) -
+                        transpose(r_param[i]) * u[select12(i)]
+        end
+
+        @objective(model, Minimize, objective)
 
         # Dynamics constraint:
         @constraint(model, x[select12(1)] == x_ref_param[1])
@@ -131,7 +135,8 @@ struct OptimizerParams{T,S}
         end
 
         println("Control Constraint allocations: ")
-        control_constraint = @expression u[select12_3(1, 1, 2)] + μ * u[select12_3(1, 1, 3)]
+        control_constraint =
+            @expression u[select12_3(1, 1, 2)] + μ * u[select12_3(1, 1, 3)]
         Parametron.findallocs(control_constraint)
 
         ref_arr_x = [x_ref_param[i].val for i = 1:(N+1)]
@@ -140,6 +145,9 @@ struct OptimizerParams{T,S}
         ref_arr_A_d = [A_d_param[i].val for i = 1:(N)]
         ref_arr_B_d = [B_d_param[i].val for i = 1:(N)]
         ref_arr_d_d = [d_d_param[i].val for i = 1:(N)]
+
+        ref_arr_q = [q_param[i].val for i = 1:(N+1)]
+        ref_arr_r = [r_param[i].val for i = 1:(N)]
 
         J = woofer.inertial.body_inertia
         sprung_mass = woofer.inertial.sprung_mass
@@ -158,8 +166,10 @@ struct OptimizerParams{T,S}
             ref_arr_A_d,
             ref_arr_B_d,
             ref_arr_d_d,
+            ref_arr_q,
+            ref_arr_r,
             J,
-            sprung_mass,
+            sprung_mass
         )
     end
 end

@@ -118,11 +118,15 @@ function foot_forces!(
 		d_c_i = NonLinearContinuousDynamics(opt.x_ref[i][], opt.u_ref[i][], foot_locs_static, contacts_static, opt.J, opt.sprung_mass)
 
 		# Euler Discretization
-		param.optimizer.A_d[i][] = oneunit(SMatrix{12,12,T}) + A_c_i*dt
-		param.optimizer.B_d[i][] = B_c_i*dt
-		param.optimizer.d_d[i][] = d_c_i*dt + opt.x_ref[i][]
+		opt.A_d[i][] = oneunit(SMatrix{12,12,T}) + A_c_i*dt
+		opt.B_d[i][] = B_c_i*dt
+		opt.d_d[i][] = d_c_i*dt + opt.x_ref[i][]
+
+		opt.q[i][] = 2*opt.Q_i*opt.x_ref[i][]
+		opt.r[i][] = 2*opt.R_i*opt.u_ref[i][]
     end
     opt.x_ref[N+1][] = SVector{12}(param.x_ref[:, N+1])
+	opt.q[N+1][] = 2*opt.Q_f*opt.x_ref[N+1][]
 
     @time solve!(opt.model)
 
