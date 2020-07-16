@@ -91,7 +91,9 @@ function foot_forces!(x_curr::AbstractVector{T}, param::ControllerParams) where 
 
 	initial_states!(opt.problem, opt.X0)
 	initial_controls!(opt.problem, opt.U0)
-	@time solve!(opt.solver)
+	allocs = @allocated(solve!(opt.solver))
+
+	println("Allocations: ", allocs)
 
 	opt.X0 = states(opt.solver)
 	opt.U0 = controls(opt.solver)

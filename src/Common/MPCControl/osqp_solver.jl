@@ -128,7 +128,9 @@ function foot_forces!(
     opt.x_ref[N+1][] = SVector{12}(param.x_ref[:, N+1])
 	opt.q[N+1][] = 2*opt.Q_f*opt.x_ref[N+1][]
 
-    @time solve!(opt.model)
+    allocs = @allocated(solve!(opt.model))
+
+	println("Allocations: ", allocs)
 
     param.forces .=
         value.(opt.model, opt.u)[select12(1)]
