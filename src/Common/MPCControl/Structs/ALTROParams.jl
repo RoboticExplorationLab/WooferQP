@@ -55,7 +55,7 @@ mutable struct OptimizerParams
 		objective = LQRObjective(Q, R, Q, x_des, N)
 
 		tf = dt*N
-		problem = Problem(model, objective, x_des, tf, x0=zeros(n), constraints=constraints, integration=Euler)
+		problem = Problem(model, objective, x_des, tf, x0=zeros(n), constraints=constraints, integration=DiscreteQuadruped)
 		solver = AugmentedLagrangianSolver(problem)
 
 		solve!(solver)

@@ -3,6 +3,68 @@ This file turns the discrete MPC problem into a quadratic problem via a sparse
 formulation.
 """
 
+function NonLinearContinuousDynamics(
+    x::SVector,
+    u::SVector,
+    r::SVector,
+    contacts::SVector,
+    J::SMatrix,
+    sprung_mass::AbstractFloat,
+)
+    rot = MRP(x[4], x[5], x[6])
+
+    v = @SVector [x[7], x[8], x[9]]
+    ω = @SVector [x[10], x[11], x[12]]
+
+    x_d_1_3 = v
+    x_d_4_6 = Rotations.kinematics(rot, ω)
+
+    torque_sum = @SVector zeros(3)
+    force_sum = @SVector [0, 0, -9.81]
+    for i = 1:4
+        force_sum += 1 / sprung_mass * contacts[i] * u[SLegIndexToRange(i)]
+        torque_sum +=
+            contacts[i] *
+            Rotations.skew(r[SLegIndexToRange(i)]) *
+            rot' *
+            u[SLegIndexToRange(i)]
+    end
+    x_d_7_9 = force_sum
+    x_d_10_12 = inv(J) * (-Rotations.skew(ω) * J * ω + torque_sum)
+
+    return [x_d_1_3; x_d_4_6; x_d_7_9; x_d_10_12]
+end
+
+function LinearizedContinuousDynamicsA(
+    x::SVector{n,T},
+    u::SVector{m,T},
+    r,
+    contacts,
+    J,
+    sprung_mass,
+)::SMatrix{n,n,T,n * n} where {T,n,m}
+    return ForwardDiff.jacobian(
+        (x_var) ->
+            NonLinearContinuousDynamics(x_var, u, r, contacts, J, sprung_mass),
+        x,
+    )
+end
+
+function LinearizedContinuousDynamicsB(
+    x::SVector{n,T},
+    u::SVector{m,T},
+    r,
+    contacts,
+    J,
+    sprung_mass,
+)::SMatrix{n,m,T,n * m} where {T,n,m}
+    return ForwardDiff.jacobian(
+        (u_var) ->
+            NonLinearContinuousDynamics(x, u_var, r, contacts, J, sprung_mass),
+        u,
+    )
+end
+
 function reference_trajectory!(x_curr::AbstractVector{T}, param::ControllerParams) where {T<:Number}
 	# TODO: integrate the x,y,ψ position from the reference
 	α = collect(range(0, 1, length=param.N+1))
@@ -37,11 +99,24 @@ function foot_forces!(x_curr::AbstractVector{T}, param::ControllerParams) where 
 	# TrajectoryOptimization.reset!(opt.constraints)
 
 	# TODO: standardize between QP and ALTRO
-	for i=1:(param.N+1)
+	for i=1:(param.N)
 		opt.model.x_ref[i] = SVector{12}(param.x_ref[:, i])
 		opt.model.contacts[i] = SVector{4}(param.contacts[:, i])
 		opt.model.foot_locs[i] = SVector{12}(param.foot_locs[:, i])
+
+		A_c_i = LinearizedContinuousDynamicsA(opt.model.x_ref[i], opt.model.u_ref[i], opt.model.foot_locs[i], opt.model.contacts[i], opt.model.J, opt.model.sprung_mass)
+		B_c_i = LinearizedContinuousDynamicsB(opt.model.x_ref[i], opt.model.u_ref[i], opt.model.foot_locs[i], opt.model.contacts[i], opt.model.J, opt.model.sprung_mass)
+		d_c_i = NonLinearContinuousDynamics(opt.model.x_ref[i], opt.model.u_ref[i], opt.model.foot_locs[i], opt.model.contacts[i], opt.model.J, opt.model.sprung_mass)
+
+		# Euler Discretization
+		opt.model.A[i] = oneunit(SMatrix{12,12,T}) + A_c_i*opt.dt
+		opt.model.B[i] = B_c_i*opt.dt
+		opt.model.d[i] = d_c_i*opt.dt + opt.model.x_ref[i]
 	end
+
+	opt.model.x_ref[param.N+1] = SVector{12}(param.x_ref[:, param.N+1])
+	opt.model.contacts[param.N+1] = SVector{4}(param.contacts[:, param.N+1])
+	opt.model.foot_locs[param.N+1] = SVector{12}(param.foot_locs[:, param.N+1])
 
 	opt.solver.solver_uncon.x0 .= x_curr
 
