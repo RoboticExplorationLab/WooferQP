@@ -1,7 +1,5 @@
 const data = YAML.load(open(joinpath(@__DIR__, "MPC.yaml")))
 
-
-
 if data["solver"] == "ALTRO"
 	const using_altro = true
 
@@ -10,6 +8,9 @@ if data["solver"] == "ALTRO"
 
 	const TO = TrajectoryOptimization
 
+	# include("Structs/LinearModels.jl")
+	include("Structs/Integration.jl")
+	include("Structs/QuadrupedModel.jl")
 	include("Structs/ALTROParams.jl")
 	include("Structs/LinearizedFrictionConstraint.jl")
 	include("Structs/SwingLegParams.jl")
