@@ -112,6 +112,8 @@ mutable struct ControllerParams
 			gait = createPronkGait(stance_time=data["gait"]["stance_time"], flight_time=data["gait"]["swing_time"])
 		elseif gait_type == "pace"
 			gait = createPaceGait(stance_time=data["gait"]["stance_time"], swing_time=data["gait"]["swing_time"])
+		elseif gait_type == "flying_trot"
+			gait = createFlyingTrot(stance_time=data["gait"]["stance_time"], flight_time=data["gait"]["swing_time"])
 		else
 			gait = createStandingGait()
 		end

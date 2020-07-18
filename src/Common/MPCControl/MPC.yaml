@@ -1,15 +1,15 @@
 # MPC Parameters:
 # xy_vel: [0.0, 0.0]
-xy_vel: [0.3, 0.0]
+xy_vel: [0.4, 0.0]
 omega_z: 0.0
 stance_height: 0.28
 dynamics_discretization: 0.05
 update_dt: 0.05
-N: 10
-# q: [0.0, 0.0, 5e4, 1e5, 1e5, 1e4, 1e4, 1e4, 1e2, 1e2, 1e2, 1e4]
-q: [0.0, 0.0, 1e5, 1e5, 1e5, 1e3, 5e3, 5e3, 1e4, 5e3, 5e3, 1e4]
-# q: [1e4, 1e4, 5e4, 1e5, 1e5, 1e4, 1e4, 1e4, 1e2, 1e2, 1e2, 1e4]
-r: [1e-2, 1e-2, 1e-4, 1e-2, 1e-2, 1e-4, 1e-2, 1e-2, 1e-4, 1e-2, 1e-2, 1e-4]
+N: 15
+
+q: [0.0, 0.0, 5e2, 5e3, 5e3, 1e3, 1e2, 1e2, 1e1, 5e2, 5e2, 1e2]
+r: [1.0, 1.0, 1e-2, 1.0, 1.0, 1e-2, 1.0, 1.0, 1e-2, 1.0, 1.0, 1e-2]
+
 # solver: "OSQP"
 solver: "ALTRO"
 
@@ -20,8 +20,8 @@ max_vert_force: 133.0
 # Gait:
 gait:
   type: "trot"
-  stance_time: 0.2
-  swing_time: 0.15
+  stance_time: 0.1
+  swing_time: 0.3
   # TODO: Add better fields here to specify arbitrary gait types?
 
 # Foot Placement:
