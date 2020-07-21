@@ -8,7 +8,7 @@ using ForwardDiff
 function NonLinearContinuousDynamics(
     x::SVector,
     u::SVector,
-    r::SVector,
+    r::FootstepLocation,
     contacts::SVector,
     J::SMatrix,
     sprung_mass::AbstractFloat,
@@ -27,7 +27,7 @@ function NonLinearContinuousDynamics(
         force_sum += 1 / sprung_mass * contacts[i] * u[SLegIndexToRange(i)]
         torque_sum +=
             contacts[i] *
-            Rotations.skew(r[SLegIndexToRange(i)]) *
+            Rotations.skew(r[i]) *
             rot' *
             u[SLegIndexToRange(i)]
     end
@@ -68,30 +68,14 @@ function LinearizedContinuousDynamicsB(
 end
 
 function reference_trajectory!(
-    x_curr::Vector{T},
+    x_curr::AbstractVector{T},
     param::ControllerParams,
 ) where {T<:Number}
     # TODO: integrate the x,y,ψ position from the reference
     α = collect(range(0, 1, length = param.N + 1))
-    # interpolate everything but x, y position
-    if param.vel_ctrl
-        interp_indices = 3:12
-    else
-        interp_indices = 1:12
-    end
 
     for i = 1:param.N+1
-        param.x_ref[interp_indices, i] .=
-            (1 - α[i]) * x_curr[interp_indices] +
-            α[i] * param.x_des[interp_indices]
-    end
-
-    if param.vel_ctrl
-        # integrate x, y position
-        integ_indices = 1:2
-        param.x_ref[integ_indices, :] .=
-            repeat(x_curr[integ_indices, 1], 1, param.N + 1) +
-            cumsum(param.x_ref[7:8, :] * param.optimizer.dt, dims = 2)
+        param.x_ref[i] = (1 - α[i]) * x_curr + α[i] * param.x_des
     end
 end
 
@@ -108,14 +92,11 @@ function foot_forces!(
     dt = opt.dt
 
     for i = 1:N
-        opt.x_ref[i][] = SVector{12}(param.x_ref[:, i])
+        opt.x_ref[i][] = param.x_ref[i]
 
-		foot_locs_static = SVector{12}(param.foot_locs[:, i])
-		contacts_static = SVector{4}(param.contacts[:, i])
-
-        A_c_i = LinearizedContinuousDynamicsA(opt.x_ref[i][], opt.u_ref[i][], foot_locs_static, contacts_static, opt.J, opt.sprung_mass)
-		B_c_i = LinearizedContinuousDynamicsB(opt.x_ref[i][], opt.u_ref[i][], foot_locs_static, contacts_static, opt.J, opt.sprung_mass)
-		d_c_i = NonLinearContinuousDynamics(opt.x_ref[i][], opt.u_ref[i][], foot_locs_static, contacts_static, opt.J, opt.sprung_mass)
+        A_c_i = LinearizedContinuousDynamicsA(opt.x_ref[i][], opt.u_ref[i][], param.foot_locs[i], param.contacts[i], opt.J, opt.sprung_mass)
+		B_c_i = LinearizedContinuousDynamicsB(opt.x_ref[i][], opt.u_ref[i][], param.foot_locs[i], param.contacts[i], opt.J, opt.sprung_mass)
+		d_c_i = NonLinearContinuousDynamics(opt.x_ref[i][], opt.u_ref[i][], param.foot_locs[i], param.contacts[i], opt.J, opt.sprung_mass)
 
 		# Euler Discretization
 		opt.A_d[i][] = oneunit(SMatrix{12,12,T}) + A_c_i*dt
@@ -125,7 +106,7 @@ function foot_forces!(
 		opt.q[i][] = 2*opt.Q_i*opt.x_ref[i][]
 		opt.r[i][] = 2*opt.R_i*opt.u_ref[i][]
     end
-    opt.x_ref[N+1][] = SVector{12}(param.x_ref[:, N+1])
+    opt.x_ref[N+1][] = param.x_ref[N+1]
 	opt.q[N+1][] = 2*opt.Q_f*opt.x_ref[N+1][]
 
     allocs = @allocated(solve!(opt.model))

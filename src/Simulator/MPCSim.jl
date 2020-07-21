@@ -71,11 +71,12 @@ function simulate()
     # true state information
     x = zeros(13)
     x_true = zeros(12)
-    joint_pos = zeros(12)
-    joint_vel = zeros(12)
-    contacts = zeros(4)
+    joint_pos = @SVector zeros(12)
+    joint_vel = @SVector zeros(12)
 
-    param = MPCControl.ControllerParams()
+    x_static = @SVector zeros(12)
+
+    param = MPCControl.ControllerParams(Float64, Int64)
 
     # Loop until the user closes the window
     WooferSim.alignscale(s)
@@ -147,8 +148,10 @@ function simulate()
                     x_true[7:9] .= s.d.qvel[1:3]
                     x_true[10:12] .= q \ s.d.qvel[4:6]
 
-                    joint_pos .= s.d.sensordata[7:18]
-                    joint_vel .= s.d.sensordata[19:30]
+                    x_static = SVector{12}(x_true)
+
+                    joint_pos = SVector{12}(s.d.sensordata[7:18])
+                    joint_vel = SVector{12}(s.d.sensordata[19:30])
 
                     try
                         MPCControl.control!(

@@ -8,6 +8,7 @@ if data["solver"] == "ALTRO"
 
 	const TO = TrajectoryOptimization
 
+	include("Structs/FootstepLocation.jl")
 	include("Structs/QuadrupedModel.jl")
 	include("Structs/ALTROParams.jl")
 	include("Structs/LinearizedFrictionConstraint.jl")
@@ -23,6 +24,7 @@ else
 	using Parametron
 	using OSQP
 
+	include("Structs/FootstepLocation.jl")
 	include("Structs/QPParams.jl")
 	include("Structs/SwingLegParams.jl")
 	include("Structs/GaitParams.jl")

@@ -1,19 +1,20 @@
-function footstep_location(v_b::AbstractVector{T}, ω_z::Number, cur_phase::Integer, i::Integer, param::ControllerParams) where {T<:Number}
+function footstep_location(v_b::AbstractVector{T}, ω_z::T, cur_phase::Integer, i::Integer, param::ControllerParams) where {T<:Number}
 	# implement body velocity heuristic to get next body relative foot location
-	ω = [0, 0, ω_z]
+	ω = @SVector [0, 0, ω_z]
 
-	xy_select = Diagonal([1, 1, 0])
-	z_select = Diagonal([0, 0, 1])
+	v_b_proj = @SVector [v_b[1], v_b[2], T(0.0)]
 
 	next_phase = nextPhase(cur_phase, param)
 
 	# k = sqrt(param.x_des[3]/9.81)
-	k = 0
+	k = T(0.0)
+
+	v_des_proj = @SVector [param.x_des[7], param.x_des[8], T(0.0)]
 
 	# TODO: use rotation matrix instead of ω cross term
-	next_foot_loc = param.nom_foot_loc[LegIndexToRange(i)] +
-						param.gait.alpha*param.gait.phase_times[next_phase]*xy_select*v_b + k*(v_b - xy_select*param.x_des[7:9])
-						param.gait.beta*param.gait.phase_times[next_phase]*Rotations.skew(ω)*param.cur_foot_loc[LegIndexToRange(i)]
+	next_foot_loc = param.nom_foot_loc[i] +
+						param.gait.alpha*param.gait.phase_times[next_phase]*v_b_proj + k*(v_b_proj - v_des_proj)
+						param.gait.beta*param.gait.phase_times[next_phase]*Rotations.skew(ω)*param.cur_foot_loc[i]
 
 	return next_foot_loc
 end
@@ -32,44 +33,47 @@ function foot_history!(t::Number, param::ControllerParams)
 	prev_foot_locs = param.cur_foot_loc
 
 	# current contact is first column of matrix
-	param.contacts[:,1] .= param.gait.contact_phases[:, prev_phase]
+	param.contacts[1] = SVector{4}(param.gait.contact_phases[:, prev_phase])
 
 	# cur_foot_loc is first column of matrix
-	param.foot_locs[:,1] .= param.cur_foot_loc
+	param.foot_locs[1] = param.cur_foot_loc
 
 	for i in 2:(param.N+1)
 		next_phase = getPhase(t_i, param)
 
-		param.contacts[:, i] .= param.gait.contact_phases[:, next_phase]
+		param.contacts[i] = SVector{4}(param.gait.contact_phases[:, next_phase])
+
+		x_ref_i = param.x_ref[i]
+		v_i = @SVector [x_ref_i[7], x_ref_i[8], x_ref_i[9]]
+		ω_b_i = @SVector [x_ref_i[10], x_ref_i[11], x_ref_i[12]]
 
 		# rotation matrix from body to inertial
-		r = MRP(param.x_ref[4:6, i]...)
-		v_b_i = r \ param.x_ref[7:9, i]
-		ω_b_i = param.x_ref[10:12, i]
+		r = MRP(x_ref_i[4], x_ref_i[5], x_ref_i[6])
+		v_b_i = r \ v_i
 
 		for j in 1:4
 			if param.gait.contact_phases[j, prev_phase] == 1
 				if param.gait.contact_phases[j, next_phase] == 0
 					# next foot placement must be planned prior to foot being released
-					param.planner_foot_loc[LegIndexToRange(j)] .= footstep_location(v_b_i, ω_b_i[3], next_phase, j, param)
-					prev_foot_locs[LegIndexToRange(j)] .= param.planner_foot_loc[LegIndexToRange(j)]
+					param.planner_foot_loc[j] = footstep_location(v_b_i, ω_b_i[3], next_phase, j, param)
+					prev_foot_locs[j] = param.planner_foot_loc[j]
 				else
 					# integrate param.x_ref via midpoint to get body relative foot location in the future
-					r_dot_i = rdot(prev_foot_locs[LegIndexToRange(j)], ω_b_i, v_b_i)
-					r_dot_mid = rdot(prev_foot_locs[LegIndexToRange(j)] + param.optimizer.dt/2*r_dot_i, ω_b_i, v_b_i)
-					prev_foot_locs[LegIndexToRange(j)] .= prev_foot_locs[LegIndexToRange(j)] + param.optimizer.dt*r_dot_mid
+					r_dot_i = rdot(prev_foot_locs[j], ω_b_i, v_b_i)
+					r_dot_mid = rdot(prev_foot_locs[j] + param.optimizer.dt/2*r_dot_i, ω_b_i, v_b_i)
+					prev_foot_locs[j] = prev_foot_locs[j] + param.optimizer.dt*r_dot_mid
 				end
 			else
 				if param.gait.contact_phases[j, next_phase] == 1
-					prev_foot_locs[LegIndexToRange(j)] .= param.planner_foot_loc[LegIndexToRange(j)]
+					prev_foot_locs[j] = param.planner_foot_loc[j]
 				else
 					# doesn't matter if foot not in contact
-					prev_foot_locs[LegIndexToRange(j)] .= zeros(3)
+					prev_foot_locs[j] = @SVector zeros(3)
 				end
 			end
 		end
 
-		param.foot_locs[:, i] .= prev_foot_locs
+		param.foot_locs[i] = prev_foot_locs
 
 		t_i += param.optimizer.dt
 		prev_phase = next_phase

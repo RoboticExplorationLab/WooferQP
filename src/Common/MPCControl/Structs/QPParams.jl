@@ -31,8 +31,8 @@ struct OptimizerParams{T,S}
     function OptimizerParams(
         dt::T,
         N::S,
-        q::Vector{T},
-        r::Vector{T},
+        q::AbstractVector{T},
+        r::AbstractVector{T},
         μ,
         min_vert_force,
         max_vert_force;

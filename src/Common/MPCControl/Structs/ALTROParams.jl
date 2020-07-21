@@ -22,9 +22,9 @@ mutable struct OptimizerParams
 	function OptimizerParams(
 							    dt::T,
 							    N::Integer,
-							    q::Vector{T},
-							    r::Vector{T},
-							    x_des::Vector{T},
+							    q::AbstractVector{T},
+							    r::AbstractVector{T},
+							    x_des::AbstractVector{T},
 							    μ::T,
 							    min_vert_force::T,
 							    max_vert_force::T;

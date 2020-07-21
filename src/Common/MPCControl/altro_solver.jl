@@ -6,7 +6,7 @@ formulation.
 function NonLinearContinuousDynamics(
     x::SVector,
     u::SVector,
-    r::SVector,
+    r::FootstepLocation,
     contacts::SVector,
     J::SMatrix,
     sprung_mass::AbstractFloat,
@@ -25,7 +25,7 @@ function NonLinearContinuousDynamics(
         force_sum += 1 / sprung_mass * contacts[i] * u[SLegIndexToRange(i)]
         torque_sum +=
             contacts[i] *
-            Rotations.skew(r[SLegIndexToRange(i)]) *
+            Rotations.skew(r[i]) *
             rot' *
             u[SLegIndexToRange(i)]
     end
@@ -71,25 +71,9 @@ function reference_trajectory!(
 ) where {T<:Number}
     # TODO: integrate the x,y,ψ position from the reference
     α = collect(range(0, 1, length = param.N + 1))
-    # interpolate everything but x, y position
-    if param.vel_ctrl
-        interp_indices = 3:12
-    else
-        interp_indices = 1:12
-    end
 
     for i = 1:param.N+1
-        param.x_ref[interp_indices, i] .=
-            (1 - α[i]) * x_curr[interp_indices] +
-            α[i] * param.x_des[interp_indices]
-    end
-
-    if param.vel_ctrl
-        # integrate x, y position
-        integ_indices = 1:2
-        param.x_ref[integ_indices, :] .=
-            repeat(x_curr[integ_indices, 1], 1, param.N + 1) +
-            cumsum(param.x_ref[7:8, :] * param.optimizer.dt, dims = 2)
+        param.x_ref[i] = (1 - α[i]) * x_curr + α[i] * param.x_des
     end
 end
 
@@ -110,31 +94,31 @@ function foot_forces!(
 
     # TODO: standardize between QP and ALTRO
     for i = 1:(param.N)
-        opt.model.x_ref[i] = SVector{12}(param.x_ref[:, i])
-        opt.model.contacts[i] = SVector{4}(param.contacts[:, i])
-        opt.model.foot_locs[i] = SVector{12}(param.foot_locs[:, i])
+        # opt.model.x_ref[i] = param.x_ref[i]
+        # opt.model.contacts[i] = param.contacts[i]
+        # opt.model.foot_locs[i] = param.foot_locs[i]
 
         A_c_i = LinearizedContinuousDynamicsA(
-            opt.model.x_ref[i],
+            param.x_ref[i],
             opt.model.u_ref[i],
-            opt.model.foot_locs[i],
-            opt.model.contacts[i],
+            param.foot_locs[i],
+            param.contacts[i],
             opt.model.J,
             opt.model.sprung_mass,
         )
         B_c_i = LinearizedContinuousDynamicsB(
-            opt.model.x_ref[i],
+            param.x_ref[i],
             opt.model.u_ref[i],
-            opt.model.foot_locs[i],
-            opt.model.contacts[i],
+            param.foot_locs[i],
+            param.contacts[i],
             opt.model.J,
             opt.model.sprung_mass,
         )
         d_c_i = NonLinearContinuousDynamics(
-            opt.model.x_ref[i],
+            param.x_ref[i],
             opt.model.u_ref[i],
-            opt.model.foot_locs[i],
-            opt.model.contacts[i],
+            param.foot_locs[i],
+            param.contacts[i],
             opt.model.J,
             opt.model.sprung_mass,
         )
@@ -145,9 +129,9 @@ function foot_forces!(
         opt.model.d[i] = d_c_i * opt.dt + opt.model.x_ref[i]
     end
 
-    opt.model.x_ref[param.N+1] = SVector{12}(param.x_ref[:, param.N+1])
-    opt.model.contacts[param.N+1] = SVector{4}(param.contacts[:, param.N+1])
-    opt.model.foot_locs[param.N+1] = SVector{12}(param.foot_locs[:, param.N+1])
+    # opt.model.x_ref[param.N+1] = param.x_ref[param.N+1]
+    # opt.model.contacts[param.N+1] = param.contacts[param.N+1]
+    # opt.model.foot_locs[param.N+1] = param.foot_locs[param.N+1]
 
     opt.solver.solver_uncon.x0 .= x_curr
 
@@ -161,5 +145,5 @@ function foot_forces!(
     opt.X0 = states(opt.solver)
     opt.U0 = controls(opt.solver)
 
-    param.forces .= opt.U0[1]
+    param.forces = opt.U0[1]
 end
