@@ -89,8 +89,6 @@ function control!(
         # @time foot_forces!(x_est, param)
         foot_forces!(x_est, param)
 
-        println("X Velocity: ", x_est[7])
-
         param.last_t = t
     end
 

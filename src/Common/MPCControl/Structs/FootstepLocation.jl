@@ -1,4 +1,4 @@
-mutable struct FootstepLocation{T}
+mutable struct FootstepLocation{T} <: AbstractArray{T, 1}
 	fr::SVector{3, T}
 	fl::SVector{3, T}
 	br::SVector{3, T}
@@ -12,7 +12,7 @@ mutable struct FootstepLocation{T}
 		br = SVector{3}(r[7], r[8], r[9])
 		bl = SVector{3}(r[10], r[11], r[12])
 
-		new{T}(fr, fl, br, fl)
+		new{T}(fr, fl, br, bl)
 	end
 end
 
@@ -29,8 +29,10 @@ function Base.getindex(fsl::FootstepLocation, i::Integer)
 		return fsl.fl
 	elseif i==3
 		return fsl.br
-	else
+	elseif i==4
 		return fsl.bl
+	else
+		throw(BoundsError(fsl, i))
 	end
 end
 
@@ -41,9 +43,15 @@ function Base.setindex!(fsl::FootstepLocation, loc::SVector{3}, i::Integer)
 		fsl.fl = loc
 	elseif i==3
 		fsl.br = loc
-	else
+	elseif i==4
 		fsl.bl = loc
+	else
+		throw(BoundsError(fsl, i))
 	end
 end
 
-Base.convert(::Type{FootstepLocation}, r::AbstractVector) = FootstepLocation(r)
+Base.convert(::Type{FootstepLocation}, r::Union{Vector, SVector}) = FootstepLocation(r)
+Base.eltype(::Type{FootstepLocation{T}}) where T = SVector{3,T}
+Base.length(::FootstepLocation) = 4
+Base.size(::FootstepLocation) = (4,)
+Base.zero(::Type{FootstepLocation}) = FootstepLocation(@SVector zeros(12))

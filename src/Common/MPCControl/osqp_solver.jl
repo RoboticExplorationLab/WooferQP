@@ -113,7 +113,7 @@ function foot_forces!(
 
 	println("Allocations: ", allocs)
 
-    param.forces .=
+    param.forces =
         value.(opt.model, opt.u)[select12(1)]
 end
 

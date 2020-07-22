@@ -30,13 +30,15 @@ function foot_history!(t::Number, param::ControllerParams)
 	t_i = t + param.optimizer.dt
 
 	prev_phase = getPhase(t, param)
-	prev_foot_locs = param.cur_foot_loc
+
+	prev_foot_locs = zero(FootstepLocation)
+	prev_foot_locs .= param.cur_foot_loc
 
 	# current contact is first column of matrix
 	param.contacts[1] = SVector{4}(param.gait.contact_phases[:, prev_phase])
 
 	# cur_foot_loc is first column of matrix
-	param.foot_locs[1] = param.cur_foot_loc
+	param.foot_locs[1] .= param.cur_foot_loc
 
 	for i in 2:(param.N+1)
 		next_phase = getPhase(t_i, param)
@@ -73,7 +75,7 @@ function foot_history!(t::Number, param::ControllerParams)
 			end
 		end
 
-		param.foot_locs[i] = prev_foot_locs
+		param.foot_locs[i] .= prev_foot_locs
 
 		t_i += param.optimizer.dt
 		prev_phase = next_phase
