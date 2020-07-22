@@ -71,7 +71,6 @@ function reference_trajectory!(
     x_curr::AbstractVector{T},
     param::ControllerParams,
 ) where {T<:Number}
-    # TODO: integrate the x,y,ψ position from the reference
     α = collect(range(0, 1, length = param.N + 1))
 
     for i = 1:param.N+1
@@ -111,7 +110,7 @@ function foot_forces!(
 
     allocs = @allocated(solve!(opt.model))
 
-	println("Allocations: ", allocs)
+	# println("Allocations: ", allocs)
 
     param.forces =
         value.(opt.model, opt.u)[select12(1)]
