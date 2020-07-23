@@ -3,20 +3,20 @@ mutable struct ControllerParams{T,S}
     mpc_torques::Any
     swing_torques::Any
 
-    prev_phase::Any
-    cur_phase::Any
-    cur_phase_time::Any # current time relative to beginning of phase
-    last_replan_t::Any # last replan time
-    replan_update::Any # time between replanning foot placements
+    prev_phase::S
+    cur_phase::S
+    cur_phase_time::T # current time relative to beginning of phase
+    last_replan_t::T # last replan time
+    replan_update::T # time between replanning foot placements
 
-    cur_foot_loc::FootstepLocation # current foot location calculated by FK
+    cur_foot_loc::FootstepLocation{T} # current foot location calculated by FK
     active_feet::Any # active feet on ground
     active_feet_12::Any # expanded active feet on ground
 
-    planner_foot_loc::FootstepLocation # footstep location for FootstepPlanner
-    next_foot_loc::FootstepLocation # actual planned next foot step for SwingLegController
+    planner_foot_loc::FootstepLocation{T} # footstep location for FootstepPlanner
+    next_foot_loc::FootstepLocation{T} # actual planned next foot step for SwingLegController
 
-    nom_foot_loc::FootstepLocation # foot location with all joint angles = 0
+    nom_foot_loc::FootstepLocation{T} # foot location with all joint angles = 0
 
     N::S # mpc number of time steps
     use_lqr::Bool # use LQR terminal cost to go in optimization
@@ -27,14 +27,14 @@ mutable struct ControllerParams{T,S}
 
 
     contacts::Vector{SVector{4,T}} # contact modes over optimization horizon
-    foot_locs::Vector{FootstepLocation} # body relative foot locations over optimization horizon
+    foot_locs::Vector{FootstepLocation{T}} # body relative foot locations over optimization horizon
     x_ref::Vector{SVector{12,T}} # state reference trajectory over optimization horizon
     forces::SVector{12,T} # first step of mpc forces
     x_des::SVector{12,T} # desired state for mpc
 
-    optimizer::OptimizerParams
-    gait::GaitParams
-    swing::SwingLegParams
+    optimizer::OptimizerParams{T, S}
+    gait::GaitParams{T, S}
+    swing::SwingLegParams{T}
 
     function ControllerParams(T, S)
         # TODO: make sure zeros outputs type T

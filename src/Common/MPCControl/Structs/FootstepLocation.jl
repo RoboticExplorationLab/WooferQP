@@ -50,8 +50,8 @@ function Base.setindex!(fsl::FootstepLocation, loc::SVector{3}, i::Integer)
 	end
 end
 
-Base.convert(::Type{FootstepLocation}, r::AbstractVector) = FootstepLocation(r)
-Base.convert(::Type{FootstepLocation}, r::FootstepLocation) = r
+Base.convert(::Type{FootstepLocation{T}}, r::AbstractVector) where T = FootstepLocation(r)
+Base.convert(::Type{FootstepLocation{T}}, r::FootstepLocation) where T = r
 Base.eltype(::Type{FootstepLocation{T}}) where T = SVector{3,T}
 Base.length(::FootstepLocation) = 4
 Base.size(::FootstepLocation) = (4,)

@@ -126,4 +126,4 @@ function WooferConfig()
     return WooferConfig(joinpath(@__DIR__,"Woofer.yaml"))
 end
 
-woofer = WooferConfig()
+const woofer = WooferConfig()

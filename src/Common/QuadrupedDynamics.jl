@@ -17,8 +17,8 @@ include("Utilities.jl")
 #########################################################################################################
 # Static Array Version
 function ForwardKinematics(α::SVector{3}, i::Integer)
-    base = ForwardHipRelativeKinematics(α, i)
-    return base + woofer.geometry.hip_layout[i, :]
+    hip_relative = ForwardHipRelativeKinematics(α, i)
+    return hip_relative + woofer.geometry.hip_layout[i, :]
 end
 
 function ForwardKinematicsAll(α::SVector{12})
@@ -43,7 +43,9 @@ function ForwardHipRelativeKinematics(α::SVector{3}, i::Integer)
     h2 = sqrt(woofer.geometry.lower_link_length^2 - d^2)
     L = h1 + h2
     unrotated = SVector{3}(L * sin(θ), woofer.geometry.abduction_layout[i], -L * cos(θ))
-    return rotx(α[1]) * unrotated
+    rotated = rotx(α[1]) * unrotated
+
+    return rotated
 end
 
 function LegJacobian(q::SVector{3}, i::Int)

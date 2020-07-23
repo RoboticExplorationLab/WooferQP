@@ -154,9 +154,9 @@ function simulate()
                     joint_vel = SVector{12}(s.d.sensordata[19:30])
 
                     try
-                        MPCControl.control!(
+                        @time MPCControl.control!(
                             actuator_torques,
-                            x_true,
+                            x_static,
                             t,
                             joint_pos,
                             joint_vel,

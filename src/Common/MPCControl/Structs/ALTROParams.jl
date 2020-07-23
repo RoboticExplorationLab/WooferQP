@@ -1,10 +1,10 @@
-mutable struct OptimizerParams
+mutable struct OptimizerParams{T, S}
 	# discretization length
-	dt::Float64
+	dt::T
 
 	# state and control size
-	n::Int64
-	m::Int64
+	n::S
+	m::S
 
 	# ALTRO Variables:
 	model::Quadruped
@@ -13,15 +13,15 @@ mutable struct OptimizerParams
 	problem::Problem
 	solver::AugmentedLagrangianSolver
 
-	X0::Vector{Vector{Float64}}
-	U0::Vector{Vector{Float64}}
+	X0::Vector{Vector{T}}
+	U0::Vector{Vector{T}}
 
 	Q
 	R
 
 	function OptimizerParams(
 							    dt::T,
-							    N::Integer,
+							    N::S,
 							    q::AbstractVector{T},
 							    r::AbstractVector{T},
 							    x_des::AbstractVector{T},
@@ -30,7 +30,7 @@ mutable struct OptimizerParams
 							    max_vert_force::T;
 							    n::Integer = 12,
 							    m::Integer = 12,
-							) where {T<:Number}
+							) where {T<:Number, S<:Integer}
 		Q = Diagonal(SVector{n}(q))
 		R = Diagonal(SVector{m}(r))
 
@@ -60,6 +60,6 @@ mutable struct OptimizerParams
 
 		solve!(solver)
 
-		new(dt, n, m, model, objective, constraints, problem, solver, X0, U0, Q, R)
+		new{T,S}(dt, n, m, model, objective, constraints, problem, solver, X0, U0, Q, R)
 	end
 end
