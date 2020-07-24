@@ -1,10 +1,10 @@
-struct GaitParams{T,S}
+struct GaitParams{T,S,P}
     # add in a cyclic array for the phases?
     num_phases::S
 
     # 4xnum_phase array of contacts for each gait phase
-    contact_phases::Matrix{S}
-    phase_times::Vector{T}
+    contact_phases::Vector{SVector{4, T}}
+    phase_times::SVector{P, T}
 
     phase_length::T
     alpha::T
@@ -17,17 +17,25 @@ function GaitParams(
     phase_times::Vector{T},
 ) where {T<:Number,S<:Integer}
     @assert num_phases == size(contact_phases, 2) == length(phase_times)
-    GaitParams{T,S}(
+
+    phase_times_static = SVector{num_phases}(phase_times)
+
+    contact_phases_static = [@SVector zeros(4) for _ = 1:num_phases]
+    for i = 1:num_phases
+        contact_phases_static[i] = SVector{4, S}(contact_phases[:, i])
+    end
+
+    GaitParams{T,S, num_phases}(
         num_phases,
-        contact_phases,
-        phase_times,
+        contact_phases_static,
+        phase_times_static,
         sum(phase_times),
         convert(T, 0.5),
         convert(T, 0.5),
     )
 end
 
-function createTrotGait(; stance_time = 0.6, swing_time = 0.2)
+function trot(; stance_time = 0.6, swing_time = 0.2)
     num_phases = 4
     contact_phases = [
         1 1 1 0
@@ -40,11 +48,11 @@ function createTrotGait(; stance_time = 0.6, swing_time = 0.2)
     return GaitParams(num_phases, contact_phases, phase_times)
 end
 
-function createStandingGait()
+function stand()
     return GaitParams(2, [1 1; 1 1; 1 1; 1 1], [1.0, 1.0])
 end
 
-function createPronkGait(; stance_time = 0.2, flight_time = 0.1)
+function pronk(; stance_time = 0.2, flight_time = 0.1)
     num_phases = 2
     contact_phases = [
         1 0
@@ -57,7 +65,7 @@ function createPronkGait(; stance_time = 0.2, flight_time = 0.1)
     return GaitParams(num_phases, contact_phases, phase_times)
 end
 
-function createPaceGait(; stance_time = 0.6, swing_time = 0.2)
+function pace(; stance_time = 0.6, swing_time = 0.2)
     num_phases = 4
     contact_phases = [
         1 1 1 0
@@ -70,7 +78,7 @@ function createPaceGait(; stance_time = 0.6, swing_time = 0.2)
     return GaitParams(num_phases, contact_phases, phase_times)
 end
 
-function createBoundGait(; front_time = 0.2, back_time = 0.2, stance_time = 0.1)
+function bound(; front_time = 0.2, back_time = 0.2, stance_time = 0.1)
     num_phases = 4
     contact_phases = [
         1 1 1 0
@@ -83,7 +91,7 @@ function createBoundGait(; front_time = 0.2, back_time = 0.2, stance_time = 0.1)
     return GaitParams(num_phases, contact_phases, phase_times)
 end
 
-function createFlyingTrot(; stance_time=0.2, flight_time=0.1)
+function flying_trot(; stance_time=0.2, flight_time=0.1)
     num_phases = 4
     contact_phases = [
         1 0 0 0

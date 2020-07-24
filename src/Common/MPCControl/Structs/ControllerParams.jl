@@ -10,7 +10,7 @@ mutable struct ControllerParams{T,S}
     replan_update::T # time between replanning foot placements
 
     cur_foot_loc::FootstepLocation{T} # current foot location calculated by FK
-    active_feet::Any # active feet on ground
+    active_feet::SVector{4, S} # active feet on ground
     active_feet_12::Any # expanded active feet on ground
 
     planner_foot_loc::FootstepLocation{T} # footstep location for FootstepPlanner
@@ -54,7 +54,7 @@ mutable struct ControllerParams{T,S}
         replan_update = 0.01
 
         cur_foot_loc = footstep_location_from_angles(α_0)
-        active_feet = zeros(S, 4)
+        active_feet = @SVector zeros(S, 4)
         active_feet_12 = zeros(S, 12)
 
         planner_foot_loc = footstep_location_from_angles(α_0)
@@ -125,27 +125,27 @@ mutable struct ControllerParams{T,S}
         gait_type = data["gait"]["type"]
 
         if gait_type == "trot"
-            gait = createTrotGait(
+            gait = trot(
                 stance_time = data["gait"]["stance_time"],
                 swing_time = data["gait"]["swing_time"],
             )
         elseif gait_type == "pronk"
-            gait = createPronkGait(
+            gait = pronk(
                 stance_time = data["gait"]["stance_time"],
                 flight_time = data["gait"]["swing_time"],
             )
         elseif gait_type == "pace"
-            gait = createPaceGait(
+            gait = pace(
                 stance_time = data["gait"]["stance_time"],
                 swing_time = data["gait"]["swing_time"],
             )
         elseif gait_type == "flying_trot"
-            gait = createFlyingTrot(
+            gait = flying_trot(
                 stance_time = data["gait"]["stance_time"],
                 flight_time = data["gait"]["swing_time"],
             )
         else
-            gait = createStandingGait()
+            gait = stand()
         end
 
         swing = SwingLegParams(

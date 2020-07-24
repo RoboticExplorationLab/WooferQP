@@ -4,7 +4,7 @@ function footstep_location(v_b::AbstractVector{T}, ω_z::T, cur_phase::Integer, 
 
 	v_b_proj = @SVector [v_b[1], v_b[2], T(0.0)]
 
-	next_phase = nextPhase(cur_phase, param)
+	next_phase = get_next_phase(cur_phase, param)
 
 	# k = sqrt(param.x_des[3]/9.81)
 	k = T(0.0)
@@ -29,21 +29,21 @@ function foot_history!(t::Number, param::ControllerParams)
 
 	t_i = t + param.optimizer.dt
 
-	prev_phase = getPhase(t, param)
+	prev_phase = get_phase(t, param)
 
 	prev_foot_locs = zero(FootstepLocation)
 	prev_foot_locs .= param.cur_foot_loc
 
 	# current contact is first column of matrix
-	param.contacts[1] = SVector{4}(param.gait.contact_phases[:, prev_phase])
+	param.contacts[1] = param.gait.contact_phases[prev_phase]
 
 	# cur_foot_loc is first column of matrix
 	param.foot_locs[1] .= param.cur_foot_loc
 
 	for i in 2:(param.N+1)
-		next_phase = getPhase(t_i, param)
+		next_phase = get_phase(t_i, param)
 
-		param.contacts[i] = SVector{4}(param.gait.contact_phases[:, next_phase])
+		param.contacts[i] = param.gait.contact_phases[next_phase]
 
 		x_ref_i = param.x_ref[i]
 		v_i = @SVector [x_ref_i[7], x_ref_i[8], x_ref_i[9]]
@@ -54,8 +54,8 @@ function foot_history!(t::Number, param::ControllerParams)
 		v_b_i = r \ v_i
 
 		for j in 1:4
-			if param.gait.contact_phases[j, prev_phase] == 1
-				if param.gait.contact_phases[j, next_phase] == 0
+			if param.gait.contact_phases[prev_phase][j] == 1
+				if param.gait.contact_phases[next_phase][j] == 0
 					# next foot placement must be planned prior to foot being released
 					param.planner_foot_loc[j] = footstep_location(v_b_i, ω_b_i[3], next_phase, j, param)
 					prev_foot_locs[j] = param.planner_foot_loc[j]
@@ -66,7 +66,7 @@ function foot_history!(t::Number, param::ControllerParams)
 					prev_foot_locs[j] = prev_foot_locs[j] + param.optimizer.dt*r_dot_mid
 				end
 			else
-				if param.gait.contact_phases[j, next_phase] == 1
+				if param.gait.contact_phases[next_phase][j] == 1
 					prev_foot_locs[j] = param.planner_foot_loc[j]
 				else
 					# doesn't matter if foot not in contact

@@ -1,23 +1,29 @@
-function getPhase(t::AbstractFloat, param::ControllerParams; return_time::Bool=false)
+function get_phase(t::AbstractFloat, param::ControllerParams)
 	phase_time = t % param.gait.phase_length
 
 	for i in 1:param.gait.num_phases
-		if phase_time < sum(param.gait.phase_times[1:i])
-			if return_time
-				return (i, phase_time - sum(param.gait.phase_times[1:i-1]))
-			else
-				return i
-			end
+		if phase_time < sum(param.gait.phase_times[get_phase_index(i)])
+			return i
 		end
 	end
 end
 
-function nextPhase(phase::Integer, param::ControllerParams)
+function get_phase_time(t::AbstractFloat, phase::Integer, param::ControllerParams)
+	phase_time = t % param.gait.phase_length
+
+	return phase_time - sum(param.gait.phase_times[get_phase_index(phase-1)])
+end
+
+function get_next_phase(phase::Integer, param::ControllerParams)
 	if (phase == param.gait.num_phases)
 		return 1
 	else
 		return phase+1
 	end
+end
+
+function get_phase_index(i::Integer)
+	return SVector{i}(1:i)
 end
 
 # function nextFootTimeOnGround(i, phase::Integer, gait_params::GaitParams)
@@ -27,7 +33,7 @@ end
 # 	# TODO: makes planner more general
 # end
 
-function coordinateExpander!(expanded::Vector, compact::Vector)
+function coordinate_expander!(expanded::Vector, compact::AbstractVector)
 	expanded[1:3] .= compact[1]
 	expanded[4:6] .= compact[2]
 	expanded[7:9] .= compact[3]

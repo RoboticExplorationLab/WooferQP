@@ -10,10 +10,11 @@ function control!(
     param.cur_foot_loc = ForwardKinematicsAll(joint_pos)
 
     # prev phase -> cur_phase check contacts to regenerate swing
-    (param.cur_phase, param.cur_phase_time) =
-        getPhase(t, param, return_time = true)
-    param.active_feet = param.gait.contact_phases[:, param.cur_phase]
-    coordinateExpander!(param.active_feet_12, param.active_feet)
+    param.cur_phase = get_phase(t, param)
+    param.cur_phase_time = get_phase_time(t, param.cur_phase, param)
+    
+    param.active_feet = param.gait.contact_phases[param.cur_phase]
+    coordinate_expander!(param.active_feet_12, param.active_feet)
 
     rot = MRP(x_est[4], x_est[5], x_est[6])
     v_i = @SVector [x_est[7], x_est[8], x_est[9]]
@@ -23,8 +24,8 @@ function control!(
     # swing leg
     for i = 1:4
         # calculate footstep and generate trajectory (stored in swing params) if needed
-        if param.gait.contact_phases[i, param.prev_phase] == 1
-            if param.gait.contact_phases[i, param.cur_phase] == 0
+        if param.gait.contact_phases[param.prev_phase][i] == 1
+            if param.gait.contact_phases[param.cur_phase][i] == 0
                 param.next_foot_loc[i] =
                     footstep_location(v_b, ω[3], param.cur_phase, i, param)
 
@@ -45,7 +46,7 @@ function control!(
         end
 
         # actually calculate swing torques
-        if param.gait.contact_phases[i, param.cur_phase] == 0
+        if param.gait.contact_phases[param.cur_phase][i] == 0
             # calculate current foot tip velocity
             J = LegJacobian(joint_pos[SLegIndexToRange(i)], i)
             cur_foot_vel_i = J * joint_vel[SLegIndexToRange(i)]

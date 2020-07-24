@@ -1,4 +1,4 @@
-mutable struct OptimizerParams{T, S}
+mutable struct OptimizerParams{T, S, I}
 	# discretization length
 	dt::T
 
@@ -7,14 +7,14 @@ mutable struct OptimizerParams{T, S}
 	m::S
 
 	# ALTRO Variables:
-	model::Quadruped
+	model::Quadruped{T, S}
 	objective::Objective
 	constraints::ConstraintList
-	problem::Problem
-	solver::AugmentedLagrangianSolver
+	problem::Problem{I, T}
+	solver::AugmentedLagrangianSolver{T}
 
-	X0::Vector{Vector{T}}
-	U0::Vector{Vector{T}}
+	X0::Vector{SVector{12, T}}
+	U0::Vector{SVector{12, T}}
 
 	Q
 	R
@@ -60,6 +60,6 @@ mutable struct OptimizerParams{T, S}
 
 		solve!(solver)
 
-		new{T,S}(dt, n, m, model, objective, constraints, problem, solver, X0, U0, Q, R)
+		new{T,S,DiscreteQuadruped}(dt, n, m, model, objective, constraints, problem, solver, X0, U0, Q, R)
 	end
 end

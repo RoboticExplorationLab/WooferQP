@@ -117,7 +117,7 @@ function foot_forces!(
 end
 
 function select12(i)
-    return (12*(i-1)+1):(12*(i-1)+12)
+    return SVector{12}((12*(i-1)+1):(12*(i-1)+12))
 end
 
 function select12_3(i, j, k)
