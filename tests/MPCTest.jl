@@ -16,6 +16,6 @@ x_est = [0.0, 0.0, 0.28, 0.1, 0.0, 0.2, -0.01, 0.01, 0.05, 0.01, 0.02, 0.03]
 MPCControl.reference_trajectory!(x_est, param)
 t = 0.0
 MPCControl.foot_history!(t, param)
-@code_warntype MPCControl.foot_forces!(x_est, param)
+MPCControl.foot_forces!(x_est, param)
 
 param.forces
