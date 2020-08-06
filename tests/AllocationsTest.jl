@@ -13,17 +13,16 @@ function test()
 
 	t = 0.0
 
-	joint_pos = @SVector zeros(12)
-	joint_vel = @SVector zeros(12)
-	x_static = @SVector zeros(12)
-	actuator_torques = zeros(12)
+	q = zeros(27)
+	q[4] = 1.0
+
+	q̇ = zeros(26)
 
 	@time MPCControl.control!(
 		actuator_torques,
-		x_static,
+		q,
+		q̇,
 		t,
-		joint_pos,
-		joint_vel,
-		param,
+		param
 	)
 end
