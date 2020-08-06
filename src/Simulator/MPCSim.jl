@@ -136,30 +136,15 @@ function simulate()
                 # Publish simulation data LCM message. Sim data does not include any latency effects
                 if t - last_sim_data_t > SIM_DATA_DT
                     # ground truth states
-                    x[1:3] .= s.d.qpos[1:3]
-                    x[4:7] .= s.d.qpos[4:7]
-                    x[8:10] .= s.d.qvel[1:3]
-                    x[11:13] .= s.d.qvel[4:6]
-
-                    q = UnitQuaternion(s.d.qpos[4:7]...)
-
-                    x_true[1:3] .= s.d.qpos[1:3]
-                    x_true[4:6] .= Rotations.params(MRP(q))
-                    x_true[7:9] .= s.d.qvel[1:3]
-                    x_true[10:12] .= q \ s.d.qvel[4:6]
-
-                    x_static = SVector{12}(x_true)
-
-                    joint_pos = SVector{12}(s.d.sensordata[7:18])
-                    joint_vel = SVector{12}(s.d.sensordata[19:30])
+                    q = SVector{19}([s.d.qpos[1:7]; s.d.sensordata[7:18]])
+                    q̇ = SVector{18}([s.d.qvel[1:6]; s.d.sensordata[19:30]])
 
                     try
-                        @time MPCControl.control!(
+                        MPCControl.control!(
                             actuator_torques,
-                            x_static,
+                            q,
+                            q̇,
                             t,
-                            joint_pos,
-                            joint_vel,
                             param,
                         )
                     catch err

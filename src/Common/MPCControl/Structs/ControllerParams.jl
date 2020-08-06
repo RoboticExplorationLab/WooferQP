@@ -1,4 +1,4 @@
-mutable struct ControllerParams{T,S}
+mutable struct ControllerParams{T,S,O}
     # initialize everything once
     mpc_torques::Any
     swing_torques::Any
@@ -32,7 +32,7 @@ mutable struct ControllerParams{T,S}
     forces::SVector{12,T} # first step of mpc forces
     x_des::SVector{12,T} # desired state for mpc
 
-    optimizer::OptimizerParams{T, S}
+    optimizer::O
     gait::GaitParams{T, S}
     swing::SwingLegParams{T}
 
@@ -154,7 +154,9 @@ mutable struct ControllerParams{T,S}
             data["swing"]["zeta"],
         )
 
-        new{T,S}(
+        O = typeof(optimizer)
+
+        new{T,S,O}(
             mpc_torques,
             swing_torques,
             prev_phase,

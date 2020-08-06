@@ -1,11 +1,25 @@
 function control!(
-    torques::AbstractVector{T},
-    x_est::AbstractVector{T},
-    t::T,
-    joint_pos::AbstractVector{T},
-    joint_vel::AbstractVector{T},
+    torques::AbstractVector,
+    q::AbstractVector,
+    q̇::AbstractVector,
+    t::AbstractFloat,
     param::ControllerParams,
-) where {T<:Number}
+) 
+    rot = UnitQuaternion(q[4], q[5], q[6], q[7])
+    mrp = MRP(rot)
+    ω = rot \ q̇[SUnitRange(4, 6)]
+
+    x_est = [
+                q[SUnitRange(1, 3)]; 
+                Rotations.params(mrp); 
+                q̇[SUnitRange(1, 3)]; 
+                ω
+            ]
+
+    # annoying way to get rid of knee joint measurements
+    joint_pos = q[@SVector [8,9,11,13,14,16,18,19,21,23,24,26]]
+    joint_vel = q̇[@SVector [7,8,10,12,13,15,17,18,20,22,23,25]]
+
     # get current leg positions
     param.cur_foot_loc = ForwardKinematicsAll(joint_pos)
 
@@ -16,10 +30,8 @@ function control!(
     param.active_feet = param.gait.contact_phases[param.cur_phase]
     coordinate_expander!(param.active_feet_12, param.active_feet)
 
-    rot = MRP(x_est[4], x_est[5], x_est[6])
     v_i = @SVector [x_est[7], x_est[8], x_est[9]]
     v_b = rot \ v_i # inertial -> body
-    ω = @SVector [x_est[10], x_est[11], x_est[12]]
 
     # swing leg
     for i = 1:4

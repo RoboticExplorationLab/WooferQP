@@ -5,6 +5,7 @@ export
 
 using LinearAlgebra
 using StaticArrays
+import StaticArrays: SUnitRange
 using Rotations
 using ..QuadrupedDynamics
 using ForwardDiff
