@@ -15,8 +15,9 @@ function NonLinearContinuousDynamics(
 )
     rot = MRP(x[4], x[5], x[6])
 
-    v = @SVector [x[7], x[8], x[9]]
-    ω = @SVector [x[10], x[11], x[12]]
+    p = x[SUnitRange(1,3)]
+    v = x[SUnitRange(7,9)]
+    ω = x[SUnitRange(10,12)]
 
     x_d_1_3 = v
     x_d_4_6 = Rotations.kinematics(rot, ω)
@@ -25,9 +26,13 @@ function NonLinearContinuousDynamics(
     force_sum = @SVector [0, 0, -9.81]
     for i = 1:4
         force_sum += 1 / sprung_mass * contacts[i] * u[SLegIndexToRange(i)]
+
+        # foot position in body frame:
+        r_b = rot'*(r[i] - p)
+
         torque_sum +=
             contacts[i] *
-            Rotations.skew(r[i]) *
+            Rotations.skew(r_b) *
             rot' *
             u[SLegIndexToRange(i)]
     end
@@ -111,10 +116,16 @@ function foot_forces!(
 
     allocs = @allocated(solve!(opt.model))
 
-	# println("Allocations: ", allocs)
+    # println("Allocations: ", allocs)
+    
+    rot = MRP(x_curr[4], x_curr[5], x_curr[6])
 
-    param.forces =
-        value.(opt.model, opt.u)[select12(1)]
+    forces_inertial = value.(opt.model, opt.u)[select12(1)]
+
+    param.forces = [rot \ forces_inertial[SLegIndexToRange(1)];
+                    rot \ forces_inertial[SLegIndexToRange(2)];
+                    rot \ forces_inertial[SLegIndexToRange(3)];
+                    rot \ forces_inertial[SLegIndexToRange(4)]]
 end
 
 function select12(i)

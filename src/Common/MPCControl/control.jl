@@ -33,20 +33,32 @@ function control!(
     v_i = @SVector [x_est[7], x_est[8], x_est[9]]
     v_b = rot \ v_i # inertial -> body
 
+    regen_footstep = false
+
     # swing leg
     for i = 1:4
+        if (t - param.last_replan_t) > param.replan_update
+            regen_footstep = true
+            param.last_replan_t = t
+        end
+
+
         # calculate footstep and generate trajectory (stored in swing params) if needed
         if param.gait.contact_phases[param.prev_phase][i] == 1
             if param.gait.contact_phases[param.cur_phase][i] == 0
                 param.next_foot_loc[i] =
-                    footstep_location(v_b, ω[3], param.cur_phase, i, param)
+                    footstep_location(x_est, rot, param.cur_phase, i, param)
 
                 # make sure MPC accounts for this next foot location
                 param.planner_foot_loc[i] = param.next_foot_loc[i]
 
+                J = LegJacobian(joint_pos[SLegIndexToRange(i)], i)
+                cur_foot_vel_i = J * joint_vel[SLegIndexToRange(i)]
+
                 foot_trajectory(
-                    -v_b,
-                    -v_b,
+                    x_est,
+                    rot,
+                    cur_foot_vel_i,
                     t,
                     t + param.gait.phase_times[param.cur_phase],
                     i,
@@ -63,16 +75,18 @@ function control!(
             J = LegJacobian(joint_pos[SLegIndexToRange(i)], i)
             cur_foot_vel_i = J * joint_vel[SLegIndexToRange(i)]
 
-            if (t - param.last_replan_t) > param.replan_update
+            # FIXME only runs once per loop
+            if regen_footstep
                 param.next_foot_loc[i] =
-                    footstep_location(v_b, ω[3], param.cur_phase, i, param)
+                    footstep_location(x_est, rot, param.cur_phase, i, param)
 
                 # make sure MPC accounts for this next foot location
                 param.planner_foot_loc[i] = param.next_foot_loc[i]
 
                 foot_trajectory(
+                    x_est,
+                    rot,
                     cur_foot_vel_i,
-                    -v_b,
                     t,
                     (t - param.cur_phase_time) +
                     param.gait.phase_times[param.cur_phase],
@@ -80,10 +94,11 @@ function control!(
                     param,
                     regen_z = false,
                 )
-                param.last_replan_t = t
             end
 
             swing_torque_i = swing_torques(
+                x_est, 
+                rot,
                 cur_foot_vel_i,
                 joint_pos[SLegIndexToRange(i)],
                 t,

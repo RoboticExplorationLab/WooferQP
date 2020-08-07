@@ -1,6 +1,7 @@
 function foot_trajectory(
-    v0::AbstractVector{T},
-    v1::AbstractVector{T},
+    x_est::AbstractVector{T},
+    rot::Rotation,
+    foot_vel_b::AbstractVector{T},
     t0::T,
     tf::T,
     i::Int,
@@ -14,32 +15,34 @@ function foot_trajectory(
     	Updated foot location taken from param.next_foot_loc
     =#
 
-    foot_loc_cur = param.cur_foot_loc[i]
+    foot_loc_cur_b = param.cur_foot_loc[i]
+    foot_loc_cur_n = x_est[SUnitRange(1, 3)] + rot*foot_loc_cur_b
+
+    foot_vel_n = x_est[SUnitRange(7, 9)] + rot*foot_vel_b #+ rot*Rotations.skew(x_est[SUnitRange(10, 12)])*foot_loc_cur_b
 
     # generate cubic spline in x,y to get body relative foot trajectory
     A = @SMatrix [
-        t0^3 t0^2 t0 1;
-        tf^3 tf^2 tf 1;
-        3 * t0^2 2 * t0 1 0;
-        3 * tf^2 2 * tf 1 0
+        t0^3 t0^2 t0 1.0;
+        tf^3 tf^2 tf 1.0;
+        3 * t0^2 2 * t0 1.0 0.0;
+        3 * tf^2 2 * tf 1.0 0.0
     ]
 
-    # TODO: add in omega cross term here? probably doesn't matter...
-    b_x = @SVector [foot_loc_cur[1], param.next_foot_loc[i][1], v0[1], v1[1]]
-    b_y = @SVector [foot_loc_cur[2], param.next_foot_loc[i][2], v0[2], v1[2]]
+    b_x = @SVector [foot_loc_cur_n[1], param.next_foot_loc[i][1], foot_vel_n[1], 0.0]
+    b_y = @SVector [foot_loc_cur_n[2], param.next_foot_loc[i][2], foot_vel_n[2], 0.0]
 
     if regen_z
         # generate cubic spline in z to enforce height constraint and terminal velocity constraint
         A_z = @SMatrix [
-            t0^3 t0^2 t0 1;
-            tf^3 tf^2 tf 1;
+            t0^3 t0^2 t0 1.0;
+            tf^3 tf^2 tf 1.0;
             (0.5 * (tf + t0))^3 (0.5 * (tf + t0))^2 (0.5 * (tf + t0)) 1;
-            3 * tf^2 2 * tf 1 0
+            3 * tf^2 2 * tf 1.0 0.0
         ]
 
         b_z = @SVector [
-            foot_loc_cur[3],
-            param.next_foot_loc[i][3],
+            foot_loc_cur_n[3],
+            0.0,
             param.swing.step_height,
             0.0,
         ]
@@ -51,7 +54,7 @@ function foot_trajectory(
         foot_trajectory = [
             A \ b_x
             A \ b_y
-            param.swing.foot_trajectories[i][SVector{4}(9:12)]
+            param.swing.foot_trajectories[i][SUnitRange(9,12)]
         ]
     end
 
@@ -59,7 +62,9 @@ function foot_trajectory(
 end
 
 function swing_torques(
-    cur_vel::AbstractVector{T},
+    x_est::AbstractVector{T},
+    rot::Rotation,
+    cur_vel_b::AbstractVector{T},
     α::AbstractVector{T},
     t::T,
     i::Integer,
@@ -74,22 +79,25 @@ function swing_torques(
     t_p = @SVector [t^3, t^2, t, 1]
     t_v = @SVector [3 * t^2, 2 * t, 1, 0]
 
-    r_des = @SVector [
-        dot(param.swing.foot_trajectories[i][SVector{4}(1:4)], t_p),
-        dot(param.swing.foot_trajectories[i][SVector{4}(5:8)], t_p),
-        dot(param.swing.foot_trajectories[i][SVector{4}(9:12)], t_p),
+    r_des_n = @SVector [
+        dot(param.swing.foot_trajectories[i][SUnitRange(1,4)], t_p),
+        dot(param.swing.foot_trajectories[i][SUnitRange(5,8)], t_p),
+        dot(param.swing.foot_trajectories[i][SUnitRange(9,12)], t_p),
     ]
 
-    v_des = @SVector [
-        dot(param.swing.foot_trajectories[i][SVector{4}(1:4)], t_v),
-        dot(param.swing.foot_trajectories[i][SVector{4}(5:8)], t_v),
-        dot(param.swing.foot_trajectories[i][SVector{4}(9:12)], t_v),
+    v_des_n = @SVector [
+        dot(param.swing.foot_trajectories[i][SUnitRange(1,4)], t_v),
+        dot(param.swing.foot_trajectories[i][SUnitRange(5,8)], t_v),
+        dot(param.swing.foot_trajectories[i][SUnitRange(9,12)], t_v),
     ]
+
+    r_des_b = rot \ (r_des_n - x_est[SUnitRange(1,3)])
+    v_des_b = rot \ (v_des_n - x_est[SUnitRange(7,9)])
 
     J = LegJacobian(α, i)
 
     return J' * (
-        param.swing.kp_cart * (r_des - param.cur_foot_loc[i]) +
-        param.swing.kd_cart * (v_des - cur_vel)
+        param.swing.kp_cart * (r_des_b - param.cur_foot_loc[i]) +
+        param.swing.kd_cart * (v_des_b - cur_vel_b)
     )
 end
