@@ -80,6 +80,7 @@ end
 
 function foot_forces!(
     x_curr::AbstractVector{T},
+    t::T,
     param::ControllerParams,
 ) where {T<:Number}
     # x_ref: 12xN+1 matrix of state reference trajectory (where first column is x0)

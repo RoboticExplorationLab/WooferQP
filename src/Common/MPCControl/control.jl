@@ -100,7 +100,7 @@ function control!(
         reference_trajectory!(x_est, param)
         foot_history!(t, param)
         # @time foot_forces!(x_est, param)
-        foot_forces!(x_est, param)
+        foot_forces!(x_est, t, param)
 
         param.last_t = t
     end

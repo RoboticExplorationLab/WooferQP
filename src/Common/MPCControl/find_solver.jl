@@ -4,9 +4,11 @@ if data["solver"] == "ALTRO"
 	const using_altro = true
 
 	using TrajectoryOptimization
+	using RobotDynamics
 	using Altro
 
 	const TO = TrajectoryOptimization
+	const RD = RobotDynamics
 
 	include("Structs/FootstepLocation.jl")
 	include("Structs/QuadrupedModel.jl")

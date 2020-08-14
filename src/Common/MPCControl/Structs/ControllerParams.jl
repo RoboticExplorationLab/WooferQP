@@ -75,12 +75,13 @@ mutable struct ControllerParams{T,S,O}
         )
 
         x_des = SVector{12}([
-            0.0
-            0.0
-            data["stance_height"]
-            zeros(3)
-            data["xy_vel"]
-            zeros(3)
+            0.0;
+            0.0;
+            data["stance_height"];
+            zeros(2);
+            0.2;
+            data["xy_vel"];
+            zeros(3);
             data["omega_z"]
         ])
 

@@ -79,6 +79,7 @@ end
 
 function foot_forces!(
     x_curr::AbstractVector{T},
+    t::T,
     param::ControllerParams,
 ) where {T<:Number}
     # x_ref: 12xN+1 matrix of state reference trajectory (where first column is x0)
@@ -86,17 +87,14 @@ function foot_forces!(
     # foot_locs: 12xN+1 matrix of foot location in body frame over planning horizon
     opt = param.optimizer
 
-    tf = param.N * opt.dt
+    tf = (param.N - 1) * opt.dt
     n = 12
     m = 12
 
     # TrajectoryOptimization.reset!(opt.constraints)
 
-    # TODO: standardize between QP and ALTRO
     for i = 1:(param.N)
-        # opt.model.x_ref[i] = param.x_ref[i]
-        # opt.model.contacts[i] = param.contacts[i]
-        # opt.model.foot_locs[i] = param.foot_locs[i]
+        opt.model.x_ref[i] = param.x_ref[i]
 
         A_c_i = LinearizedContinuousDynamicsA(
             param.x_ref[i],
@@ -114,24 +112,23 @@ function foot_forces!(
             opt.model.J,
             opt.model.sprung_mass,
         )
-        d_c_i = NonLinearContinuousDynamics(
+        d_c_i = - A_c_i*opt.model.x_ref[i] - B_c_i*opt.model.u_ref[i] + NonLinearContinuousDynamics(
             param.x_ref[i],
             opt.model.u_ref[i],
             param.foot_locs[i],
             param.contacts[i],
             opt.model.J,
             opt.model.sprung_mass,
-        )
+        ) 
 
-        # Euler Discretization
-        opt.model.A[i] = oneunit(SMatrix{12,12,T}) + A_c_i * opt.dt
-        opt.model.B[i] = B_c_i * opt.dt
-        opt.model.d[i] = d_c_i * opt.dt + opt.model.x_ref[i]
+        # Midpoint Discretization
+        opt.model.A[i] = oneunit(SMatrix{12,12,T}) + A_c_i * opt.dt + A_c_i^2 * opt.dt^2/2
+        opt.model.B[i] = B_c_i * opt.dt + A_c_i*B_c_i*opt.dt^2/2
+        opt.model.d[i] = d_c_i * opt.dt + A_c_i*d_c_i*opt.dt^2/2
     end
 
-    # opt.model.x_ref[param.N+1] = param.x_ref[param.N+1]
-    # opt.model.contacts[param.N+1] = param.contacts[param.N+1]
-    # opt.model.foot_locs[param.N+1] = param.foot_locs[param.N+1]
+    # TODO: zero cost version of this?
+    opt.model.times .= collect(t:opt.dt:(t+tf))
 
     opt.solver.solver_uncon.x0 .= x_curr
 
@@ -145,5 +142,14 @@ function foot_forces!(
     opt.X0 = states(opt.solver)
     opt.U0 = controls(opt.solver)
 
-    param.forces = opt.U0[1]
+    rot = MRP(x_curr[4], x_curr[5], x_curr[6])
+
+    inertial_forces = opt.U0[1]
+
+    param.forces = inertial_forces
+
+    # param.forces = [rot \ inertial_forces[SLegIndexToRange(1)];
+    #                 rot \ inertial_forces[SLegIndexToRange(2)];
+    #                 rot \ inertial_forces[SLegIndexToRange(3)];
+    #                 rot \ inertial_forces[SLegIndexToRange(4)]]
 end
