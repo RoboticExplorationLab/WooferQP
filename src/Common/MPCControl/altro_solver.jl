@@ -126,11 +126,7 @@ function foot_forces!(
         opt.model.B[i] = B_c_i * opt.dt + A_c_i*B_c_i*opt.dt^2/2
         opt.model.d[i] = d_c_i * opt.dt + A_c_i*d_c_i*opt.dt^2/2
     end
-
-    # TODO: zero cost version of this?
-    opt.model.times .= collect(t:opt.dt:(t+tf))
-
-    opt.solver.solver_uncon.x0 .= x_curr
+    opt.solver.solver_al.solver_uncon.x0 .= x_curr
 
     initial_states!(opt.problem, opt.X0)
     initial_controls!(opt.problem, opt.U0)

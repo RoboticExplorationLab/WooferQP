@@ -19,7 +19,9 @@ struct Quadruped{T,S} <: RD.DiscreteLTV
         A = [@SMatrix zeros(T, 12, 12) for _ = 1:N+1]
         B = [@SMatrix zeros(T, 12, 12) for _ = 1:N+1]
         d = [@SVector zeros(T, 12) for _ = 1:N+1]
-        times = zeros(T, N)
+
+        tf = (N - 1) * dt
+        times = collect(0.0:dt:(tf))
 
         new{T,S}(
             dt,
@@ -42,7 +44,7 @@ RD.is_affine(model::Quadruped) = Val(true)
 RD.state_dim(::Quadruped) = 12
 RD.control_dim(::Quadruped) = 12
 
-RD.get_A(model::Quadruped, k::Integer) = model.A[k] 
+RD.get_A(model::Quadruped, k::Integer) = model.A[k]
 RD.get_B(model::Quadruped, k::Integer) = model.B[k]
 RD.get_d(model::Quadruped, k::Integer) = model.d[k]
 RD.get_times(model::Quadruped) = model.times

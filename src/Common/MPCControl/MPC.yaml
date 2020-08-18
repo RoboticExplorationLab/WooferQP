@@ -1,6 +1,6 @@
 # MPC Parameters:
 # xy_vel: [0.0, 0.0]
-xy_vel: [0.35, 0.0]
+xy_vel: [0.0, 0.4]
 omega_z: 0.0
 stance_height: 0.28
 dynamics_discretization: 0.05
