@@ -42,7 +42,7 @@ function foot_trajectory(
 
         b_z = @SVector [
             foot_loc_cur_n[3],
-            0.0,
+            woofer.geometry.foot_radius,
             param.swing.step_height,
             0.0,
         ]
