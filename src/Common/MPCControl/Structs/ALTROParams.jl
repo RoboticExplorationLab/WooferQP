@@ -36,8 +36,10 @@ mutable struct OptimizerParams{T, S, P, A}
 
 
 		# TODO: better initialization here
-		X0 = [zeros(n) for i=1:(N+1)]
-		U0 = [zeros(m) for i=1:N]
+		u_guess = woofer.inertial.sprung_mass/4*(@SVector [0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1.])
+
+		X0 = [x_des for i=1:(N+1)]
+		U0 = [u_guess for i=1:N]
 
 		model = Quadruped(dt, N)
 

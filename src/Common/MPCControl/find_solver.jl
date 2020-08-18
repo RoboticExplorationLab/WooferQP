@@ -14,6 +14,7 @@ if data["solver"] == "ALTRO"
 	include("Structs/QuadrupedModel.jl")
 	include("Structs/ALTROParams.jl")
 	include("Structs/LinearizedFrictionConstraint.jl")
+	# include("Structs/FrictionConstraint.jl")
 	include("Structs/SwingLegParams.jl")
 	include("Structs/GaitParams.jl")
 	include("Structs/ControllerParams.jl")
