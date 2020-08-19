@@ -5,11 +5,12 @@ function footstep_location(x_est::AbstractVector{T}, rot::Rotation, cur_phase::I
 	p = x_est[SUnitRange(1,3)]
 
 	next_phase = get_next_phase(cur_phase, param)
+	t_next = param.gait.phase_times[next_phase]
 
-	# k = sqrt(param.x_des[3]/9.81)
+	# k = sqrt(param.x_des[3]/9.81) # capture point heuristic
 	k = T(0.0)
 
-	v_des_proj = param.x_des[SUnitRange(7,9)]
+	v_des = param.x_des[SUnitRange(7,9)]
 
 	nom_foot_loc_n = p + rot*param.nom_foot_loc[i]
 
@@ -18,9 +19,9 @@ function footstep_location(x_est::AbstractVector{T}, rot::Rotation, cur_phase::I
 									0 1 0;
 									0 0 0	]
 
-	next_foot_loc = p + rot*param.nom_foot_loc[i] +
-						param.gait.alpha*param.gait.phase_times[next_phase]*v_n + k*(v_n - v_des_proj)
-						param.gait.beta*RotZ(param.gait.phase_times[next_phase]*ω_n[3])*param.cur_foot_loc[i]
+	next_foot_loc = nom_foot_loc_n +
+						param.gait.alpha*t_next*v_n + k*(v_n - v_des)
+						param.gait.beta*RotZ(t_next*ω_n[3])*param.cur_foot_loc[i]
 
 	return projection_matrix * next_foot_loc
 end
@@ -33,6 +34,7 @@ function foot_history!(t::Number, param::ControllerParams)
 	# outputs (in param):
 	# contacts
 	# foot_locs
+	# temporarily: integrated velocity -> position reference
 
 	t_i = t + param.optimizer.dt
 
@@ -40,15 +42,13 @@ function foot_history!(t::Number, param::ControllerParams)
 
 	prev_foot_locs = zero(FootstepLocation)
 	rot = MRP(param.x_ref[1][4], param.x_ref[1][5], param.x_ref[1][6])
-	for i=1:4
-		prev_foot_locs[i] = param.x_ref[1][SUnitRange(1,3)] + rot*param.cur_foot_loc[i]
-	end
+	prev_foot_locs = param.x_ref[1][SUnitRange(1,3)] + rot*param.cur_foot_loc
 
 	# current contact is first entry
 	param.contacts[1] = param.gait.contact_phases[prev_phase]
 
 	# cur_foot_loc is first entry
-	param.foot_locs[1] .= param.cur_foot_loc
+	param.foot_locs[1] .= prev_foot_locs
 
 	p_integrate = param.x_ref[1][SUnitRange(1,3)]
 
