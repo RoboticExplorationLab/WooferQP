@@ -26,22 +26,16 @@ echo 'export MUJOCO_KEY_PATH=[YOUR PATH]/mjkey.txt' >> ~/.bash_profile
 pkg> activate .
 ```
 
-6. Install MuJoCo.jl while still in the Package Manager with  
-```shell
-pkg> add https://github.com/klowrey/MuJoCo.jl
-```
-
-7. Then instantiate the environment, which should download all other dependencies.
+6. Then instantiate the environment, which should download all other dependencies.
 ```shell
 pkg> instantiate
 ```
 ## Run Simulation
-1. When inside the WooferQP repo, `cd src/Simulator`
+1. Enter the WooferQP repo in the terminal
 2. Enter the Julia REPL inside of the folder by typing `julia` (may need to alias path to julia).
 2. Run
 ```julia
-include("WooferSim.jl")
-Main.WooferSim.simulate()
+include("test/Simulator/run_sim.jl")
 ```
 3. The MuJoCo simulator should then pop up in a new window with various interactive options. Press space to start the simulation.
 - Click and drag with the left mouse button to orbit the camera, and with the right mouse button to pan the camera.

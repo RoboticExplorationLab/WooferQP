@@ -518,11 +518,11 @@ version = "1.0.1"
 
 [[RobotDynamics]]
 deps = ["ForwardDiff", "LinearAlgebra", "RecipesBase", "Rotations", "StaticArrays", "UnsafeArrays"]
-git-tree-sha1 = "d76278d0d0e86420d7a4f32f22bb5bff0fe3aeb9"
+git-tree-sha1 = "cb201bc1b4fe87b39593e1d19064475b3e145409"
 repo-rev = "linear_model"
 repo-url = "https://github.com/RoboticExplorationLab/RobotDynamics.jl.git"
 uuid = "38ceca67-d8d3-44e8-9852-78a5596522e1"
-version = "0.2.0"
+version = "0.2.1"
 
 [[RobotZoo]]
 deps = ["LinearAlgebra", "Parameters", "RobotDynamics", "Rotations", "StaticArrays"]

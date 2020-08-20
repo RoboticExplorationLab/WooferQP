@@ -1,5 +1,3 @@
-include("../Common/Config.jl")
-
 function ParseXML(woofer::WooferConfig; μ = 1.5, Δt = 0.0001)
 ###### ROBOT PARAMETERS #####
 

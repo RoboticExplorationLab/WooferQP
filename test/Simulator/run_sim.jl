@@ -1,10 +1,11 @@
+using Revise
 using StaticArrays
 
-include("../Common/QuadrupedDynamics.jl")
-include("../Common/MPCControl/MPCControl.jl")
-include("../Common/Utilities.jl")
-include("../Common/Config.jl")
-include("XMLParser.jl")
+includet("../../src/QuadrupedDynamics.jl")
+includet("../../src/MPCControl/MPCControl.jl")
+includet("../../src/Utilities.jl")
+includet("../../src/Config.jl")
+includet("XMLParser.jl")
 
 import .MPCControl
 using MuJoCoSimulator
@@ -15,7 +16,7 @@ function run_sim()
 
     woofer = WooferConfig()
     ParseXML(woofer)
-    xml_path = yaml_path = joinpath(@__DIR__, "woofer_out.xml")
+    xml_path = joinpath(@__DIR__, "woofer_out.xml")
 
     # Initialize simulator object
     control_timestep = simulator_yaml["simulator"]["sim_data_dt"]
